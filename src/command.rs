@@ -25,6 +25,10 @@ pub enum Command {
     Cwd(String),
     /// Remove file at specified path
     Dele(String),
+    /// Get the feature list implemented by the server
+    Feat,
+    /// Language Negotiation
+    Lang(Option<String>),
     /// List entries at specified path. If path is not provided list entries at current working directory
     List(Option<String>),
     /// Get modification time for file at specified path
@@ -35,6 +39,12 @@ pub enum Command {
     Nlst(Option<String>),
     /// Ping server
     Noop,
+    /// Lists the contents of a directory in a standardized machine-readable format
+    Mlsd(Option<String>),
+    /// Provides data about exactly the object named on its command line in a standardized machine-readable format
+    Mlst(Option<String>),
+    /// Select options for a feature (for example OPTS UTF8 ON)
+    Opts(String, Option<String>),
     /// Provide login password
     Pass(String),
     /// Passive mode
@@ -61,6 +71,8 @@ pub enum Command {
     Retr(String),
     /// Remove directory
     Rmd(String),
+    /// Sends site specific commands to remote server (like SITE IDLE 60 or SITE UMASK 002). Inspect SITE HELP output for complete list of supported commands
+    Site(String),
     /// Get file size of specified path
     Size(String),
     /// Put file at specified path
@@ -69,6 +81,50 @@ pub enum Command {
     Type(FileType),
     /// Provide user to login as
     User(String),
+}
+
+macro_rules! impl_command_new_str {
+    ($cmd_name:ident, $fn_name:ident) => {
+        pub fn $fn_name<S: AsRef<str>>(s: S) -> Self {
+            Self::$cmd_name(s.as_ref().to_string())
+        }
+    };
+}
+macro_rules! impl_command_new_optstr {
+    ($cmd_name:ident, $fn_name:ident) => {
+        pub fn $fn_name<S: AsRef<str>>(s: Option<S>) -> Self {
+            Self::$cmd_name(s.map(|s| s.as_ref().to_string()))
+        }
+    };
+}
+macro_rules! impl_command_new_str_optstr {
+    ($cmd_name:ident, $fn_name:ident) => {
+        pub fn $fn_name<S: AsRef<str>>(s: S, s2: Option<S>) -> Self {
+            Self::$cmd_name(s.as_ref().to_string(), s2.map(|s| s.as_ref().to_string()))
+        }
+    };
+}
+
+impl Command {
+    impl_command_new_str!(Cwd, new_cwd);
+    impl_command_new_str!(Dele, new_dele);
+    impl_command_new_optstr!(Lang, new_lang);
+    impl_command_new_optstr!(List, new_list);
+    impl_command_new_optstr!(Nlst, new_nlst);
+    impl_command_new_str!(Mkd, new_mkd);
+    impl_command_new_optstr!(Mlst, new_mlst);
+    impl_command_new_optstr!(Mlsd, new_mlsd);
+    impl_command_new_str!(Mdtm, new_mdtm);
+    impl_command_new_str_optstr!(Opts, new_opts);
+    impl_command_new_str!(Pass, new_pass);
+    impl_command_new_str!(RenameFrom, new_rename_from);
+    impl_command_new_str!(RenameTo, new_rename_to);
+    impl_command_new_str!(Retr, new_retr);
+    impl_command_new_str!(Rmd, new_rmd);
+    impl_command_new_str!(Site, new_site);
+    impl_command_new_str!(Size, new_size);
+    impl_command_new_str!(Store, new_store);
+    impl_command_new_str!(User, new_user);
 }
 
 #[cfg(any(feature = "secure", feature = "async-secure"))]
@@ -94,17 +150,34 @@ impl ToString for Command {
             Self::ClearCommandChannel => "CCC".to_string(),
             Self::Cwd(d) => format!("CWD {}", d),
             Self::Dele(f) => format!("DELE {}", f),
+            Self::Feat => "FEAT".to_string(),
+            Self::Lang(l) => match l {
+                Some(l) => format!("LANG {}", l),
+                None => "LANG".to_string(),
+            },
             Self::List(p) => p
                 .as_deref()
                 .map(|x| format!("LIST {}", x))
                 .unwrap_or_else(|| "LIST".to_string()),
             Self::Mdtm(p) => format!("MDTM {}", p),
+            Self::Mlsd(p) => match p {
+                Some(p) => format!("MLSD {}", p),
+                None => "MLSD".to_string(),
+            },
+            Self::Mlst(p) => match p {
+                Some(p) => format!("MLST {}", p),
+                None => "MLST".to_string(),
+            },
             Self::Mkd(p) => format!("MKD {}", p),
             Self::Nlst(p) => p
                 .as_deref()
                 .map(|x| format!("NLST {}", x))
                 .unwrap_or_else(|| "NLST".to_string()),
             Self::Noop => "NOOP".to_string(),
+            Self::Opts(s, s2) => match s2 {
+                Some(s2) => format!("OPTS {} {}", s, s2),
+                None => format!("OPTS {}", s),
+            },
             Self::Pass(p) => format!("PASS {}", p),
             Self::Pasv => "PASV".to_string(),
             #[cfg(any(feature = "secure", feature = "async-secure"))]
@@ -119,6 +192,7 @@ impl ToString for Command {
             Self::Rest(offset) => format!("REST {}", offset),
             Self::Retr(p) => format!("RETR {}", p),
             Self::Rmd(p) => format!("RMD {}", p),
+            Self::Site(p) => format!("SITE {}", p),
             Self::Size(p) => format!("SIZE {}", p),
             Self::Store(p) => format!("STOR {}", p),
             Self::Type(t) => format!("TYPE {}", t.to_string()),

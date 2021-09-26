@@ -46,7 +46,7 @@
 //!
 //! ```rust
 //! use suppaftp::FtpStream;
-//! let mut ftp_stream = FtpStream::connect("127.0.0.1:10021").unwrap_or_else(|err|
+//! let mut ftp_stream = FtpStream::connect("ftp.server.local:21").unwrap_or_else(|err|
 //!     panic!("{}", err)
 //! );
 //! assert!(ftp_stream.login("test", "test").is_ok());
@@ -92,10 +92,9 @@
 //! Let's quickly see in the example how it works
 //!
 //! ```rust
-//! extern crate suppaftp;
-//!
+//! # #[cfg(any(feature = "async", feature = "async-secure"))] {
 //! use suppaftp::FtpStream;
-//! use suppaftp::async_native_tls::{TlsConnector, TlsStream};
+//! use async_native_tls::{TlsConnector, TlsStream};
 //!
 //! let ftp_stream = FtpStream::connect("test.rebex.net:21").await.unwrap();
 //! // Switch to the secure mode
@@ -104,6 +103,7 @@
 //! // Do other secret stuff
 //! // Do all public stuff
 //! assert!(ftp_stream.quit().await.is_ok());
+//! # }
 //! ```
 //!
 
@@ -128,6 +128,8 @@ pub(crate) mod command;
 mod status;
 #[cfg(any(test, not(any(feature = "async", feature = "async-secure"))))]
 mod sync_ftp;
+
+mod utils;
 
 // -- public
 pub mod list;
@@ -154,4 +156,18 @@ pub use types::{FtpError, FtpResult, Mode};
 #[cfg(test)]
 pub fn log_init() {
     let _ = env_logger::builder().is_test(true).try_init();
+}
+
+pub mod test {
+    pub const TEST_SERVER_ADDR: &str = "ftp.server.local:21";
+    pub const TEST_SERVER_LOGIN: &str = "test";
+    pub const TEST_SERVER_PASSWORD: &str = "test";
+//    pub const TEST_SERVER_WELCOME: &str = "220 You will be disconnected after 15 minutes of inactivity.";
+
+    pub const TEST_SERVER_WELCOME: &str = "ProFTPD Server (backup FTP Server) [::ffff:192.168.8.222]";
+
+    pub const TEST_SSL_SERVER_ADDR: &str = "test.rebex.net:21";
+    pub const TEST_SSL_SERVER_NAME: &str = "test.rebex.net";
+    pub const TEST_SSL_SERVER_LOGIN: &str = "demo";
+    pub const TEST_SSL_SERVER_PASSWORD: &str = "password";
 }

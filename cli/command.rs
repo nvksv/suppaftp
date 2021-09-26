@@ -42,7 +42,7 @@ impl FromStr for Command {
                         Some(d) => Ok(Self::Appe(local, d.to_string())),
                         None => Err("Missing `dest` field"),
                     }
-                }
+                },
                 "CDUP" => Ok(Self::Cdup),
                 "CONNECT" => match args.next() {
                     Some(addr) => Ok(Self::Connect(addr.to_string(), false)),

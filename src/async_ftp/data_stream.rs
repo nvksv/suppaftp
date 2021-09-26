@@ -4,15 +4,16 @@
 
 #[cfg(feature = "async-secure")]
 use async_native_tls::TlsStream;
-#[cfg(any(feature = "async", feature = "async-secure"))]
+//#[cfg(any(feature = "async", feature = "async-secure"))]
 use async_std::io::{Read, Result, Write};
-#[cfg(any(feature = "async", feature = "async-secure"))]
+//#[cfg(any(feature = "async", feature = "async-secure"))]
 use async_std::net::TcpStream;
 use pin_project::pin_project;
 use std::pin::Pin;
 
 /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
 #[pin_project(project = DataStreamProj)]
+#[derive(Debug)]
 pub enum DataStream {
     Tcp(#[pin] TcpStream),
     #[cfg(feature = "async-secure")]

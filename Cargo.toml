@@ -44,6 +44,12 @@ rand = "^0.8.4"
 serial_test = "^0.5.1"
 
 [features]
+## nvksv
+default = ["with-containers", "async-secure"]
+#default = ["with-containers", "async"]
+#default = ["with-containers", "secure"]
+#default = ["with-containers"]
+
 # Enable async support for suppaftp
 async = ["async-std", "pin-project"]
 async-secure = ["async-std", "async-native-tls", "pin-project"]
@@ -52,10 +58,14 @@ async-secure = ["async-std", "async-native-tls", "pin-project"]
 secure = ["native-tls"]
 
 # Disable logging
-no-log = [ "log/max_level_off" ]
+no-log = ["log/max_level_off"]
 
 # Must be enabled whenever testing with docker containers
 with-containers = []
 
 # Don't enable this feature; is used by suppaftp binary only
-cli-bin = [ "env_logger", "rpassword"]
+cli-bin = ["env_logger", "rpassword"]
+
+with-encodings = []
+
+support-ftpclient = []

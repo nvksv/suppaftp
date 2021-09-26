@@ -13,11 +13,11 @@
 //! call `File::from_line()` function as shown in the example.
 //!
 //! ```rust
-//! use std::convert::TryFrom;
+//! # use std::convert::TryFrom;
 //! use suppaftp::{FtpStream, list::File};
 //!
 //! // Connect to the server
-//! let mut ftp_stream = FtpStream::connect("127.0.0.1:10021").unwrap_or_else(|err|
+//! let mut ftp_stream = FtpStream::connect("ftp.server.local:21").unwrap_or_else(|err|
 //!     panic!("{}", err)
 //! );
 //!
@@ -328,6 +328,12 @@ impl File {
                     size,
                 );
                 // Return entry
+                trace!(
+                    "Found file with name {}, type: {:?}, size: {}",
+                    name,
+                    file_type,
+                    size,
+                );
                 Ok(File {
                     name,
                     file_type,
@@ -394,6 +400,18 @@ impl File {
                     .unwrap_or(SystemTime::UNIX_EPOCH)
             })
             .map_err(|_| ParseError::InvalidDate)
+    }
+
+    pub fn from_raw( name: String, is_dir: bool, size: usize, modified: SystemTime, uid: Option<u32>, gid: Option<u32>, posix_pex: (u8, u8, u8) ) -> Self {
+        Self {
+            name, 
+            file_type: if is_dir {FileType::Directory} else {FileType::File}, 
+            size, 
+            modified, 
+            uid, 
+            gid, 
+            posix_pex: (PosixPex::from(posix_pex.0), PosixPex::from(posix_pex.1), PosixPex::from(posix_pex.2))    
+        }
     }
 }
 
