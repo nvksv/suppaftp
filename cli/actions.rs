@@ -8,7 +8,7 @@ use suppaftp::types::FileType;
 use suppaftp::Mode;
 
 pub fn quit(mut ftp: Option<FtpStream>) {
-    if let Some(mut ftp) = ftp.take() {
+    if let Some(ftp) = ftp.take() {
         match ftp.quit() {
             Ok(_) => println!("OK"),
             Err(err) => eprintln!("Failed to disconnect from remote: {}", err),
@@ -83,11 +83,30 @@ pub fn cwd(ftp: &mut FtpStream, dir: &str) {
     }
 }
 
+pub fn dele(ftp: &mut FtpStream, file: &str) {
+    match ftp.rm(file) {
+        Ok(_) => println!("OK"),
+        Err(err) => eprintln!("DELE error: {}", err),
+    }
+}
+
+pub fn feat(ftp: &mut FtpStream) {
+    match ftp.feat() {
+        Ok(v) => v.iter().for_each(|s| println!("{}", s)),
+        Err(err) => eprintln!("FEAT error: {}", err),
+    }
+}
+
+pub fn lang(ftp: &mut FtpStream, l: Option<&str>) {
+    match ftp.lang(l) {
+        Ok(resp) => println!("{}", resp),
+        Err(err) => eprintln!("LANG error: {}", err),
+    }
+}
+
 pub fn list(ftp: &mut FtpStream, p: Option<&str>) {
     match ftp.list(p) {
-        Ok(files) => {
-            files.iter().for_each(|f| println!("{}", f));
-        }
+        Ok(files) => files.iter().for_each(|f| println!("{}", f)),
         Err(err) => eprintln!("LIST error: {}", err),
     }
 }
@@ -137,10 +156,38 @@ pub fn set_mode(ftp: &mut FtpStream, mode: Mode) {
     println!("OK");
 }
 
+pub fn nlst(ftp: &mut FtpStream, p: Option<&str>) {
+    match ftp.nlst(p) {
+        Ok(files) => files.iter().for_each(|f| println!("{}", f)),
+        Err(err) => eprintln!("NLST error: {}", err),
+    }
+}
+
 pub fn noop(ftp: &mut FtpStream) {
     match ftp.noop() {
         Ok(_) => println!("OK"),
         Err(err) => eprintln!("NOOP error: {}", err),
+    }
+}
+
+pub fn mlsd(ftp: &mut FtpStream, p: Option<&str>) {
+    match ftp.mlsd(p) {
+        Ok(files) => files.iter().for_each(|f| println!("{}", f)),
+        Err(err) => eprintln!("MLSD error: {}", err),
+    }
+}
+
+pub fn mlst(ftp: &mut FtpStream, p: Option<&str>) {
+    match ftp.mlst(p) {
+        Ok(resp) => println!("{}", resp),
+        Err(err) => eprintln!("MLST error: {}", err),
+    }
+}
+
+pub fn opts(ftp: &mut FtpStream, n: &str, v: Option<&str>) {
+    match ftp.opts(n, v) {
+        Ok(resp) => println!("{}", resp),
+        Err(err) => eprintln!("OPTS error: {}", err),
     }
 }
 
@@ -204,9 +251,24 @@ pub fn rmdir(ftp: &mut FtpStream, dir: &str) {
     }
 }
 
+pub fn site(ftp: &mut FtpStream, cmd: &str) {
+    match ftp.site(cmd) {
+        Ok(resp) => println!("{}", resp),
+        Err(err) => eprintln!("SITE error: {}", err),
+    }
+}
+
 pub fn size(ftp: &mut FtpStream, file: &str) {
     match ftp.size(file) {
         Ok(size) => println!("OK: {}", size),
         Err(err) => eprintln!("SIZE error: {}", err),
     }
 }
+
+pub fn stat(ftp: &mut FtpStream, p: Option<&str>) {
+    match ftp.stat(p) {
+        Ok(files) => files.iter().for_each(|f| println!("{}", f)),
+        Err(err) => eprintln!("STAT error: {}", err),
+    }
+}
+

@@ -57,7 +57,6 @@ pub enum FtpError {
 impl FtpError {
     pub fn is_recoverable(&self) -> bool {
         match self {
-            FtpError::SecureError(_) => { true },
             FtpError::ConnectionError(ioe) => {
                 match ioe.kind() {
                     std::io::ErrorKind::ConnectionRefused |
@@ -67,6 +66,10 @@ impl FtpError {
                     _ => { false },
                 }
             },
+
+            #[cfg(feature = "secure")]
+            FtpError::SecureError(_) => { true },
+
             _ => { false },
         }
     }

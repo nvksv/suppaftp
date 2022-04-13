@@ -33,12 +33,20 @@ fn usage() {
     println!("CONNECT <addr:port>                 Connect to remote host");
     println!("CONNECT+S <addr:port>               Connect to remote host using FTPS");
     println!("CWD <dir>                           Change working directory");
+    println!("DELE <file>                         Remove file at specified path");
+    println!("FEAT                                Get the feature list implemented by the server");
     println!("HELP                                Print this help");
+    println!("LANG [lang]                         Language negotiation");
     println!("LIST [dir]                          List files. If directory is not provided, current directory is used");
     println!("LOGIN                               Login to remote");
     println!("MDTM <file>                         Get modification time for `file`");
+    println!("MKDIR <dir>                         Make directory");
     println!("MODE <PASSIVE|ACTIVE>               Set mode");
+    println!("NLST [path]                         Get the list of file names at specified path. If path is not provided list entries at current working directory");
     println!("NOOP                                Ping server");
+    println!("MLSD [path]                         Lists the contents of a directory in a standardized machine-readable format");
+    println!("MLST [path]                         Provides data about exactly the object named on its command line in a standardized machine-readable format");
+    println!("OPTS <name> [value]                 Select options for a feature (for example OPTS UTF8 ON)");
     println!("PUT <file> <dest>                   Upload local file `file` to `dest`");
     println!("PWD                                 Print working directory");
     println!("QUIT                                Quit suppaftp");
@@ -46,6 +54,7 @@ fn usage() {
     println!("RETR <file> <dest>                  Download `file` to `dest`");
     println!("RM <file>                           Remove file");
     println!("RMDIR <dir>                         Remove directory");
+    println!("SITE <cmd>                          Sends site specific commands to remote server (like SITE IDLE 60 or SITE UMASK 002). Inspect SITE HELP output for complete list of supported commands");
     println!("SIZE <file>                         Get `file` size");
     println!();
     println!("Please, report issues to <https://github.com/veeso/suppaftp>");
@@ -123,19 +132,28 @@ fn perform_connected(ftp: &mut FtpStream, command: Command) {
             }
         }
         Command::Cwd(dir) => cwd(ftp, dir.as_str()),
+        Command::Dele(file) => dele(ftp, file.as_str()),
+        Command::Feat => feat(ftp),
+        Command::Lang(l) => lang(ftp, l.as_deref()),
         Command::List(p) => list(ftp, p.as_deref()),
         Command::Login => login(ftp),
         Command::Mdtm(p) => mdtm(ftp, p.as_str()),
         Command::Mkdir(p) => mkdir(ftp, p.as_str()),
         Command::Mode(m) => set_mode(ftp, m),
+        Command::Nlst(p) => nlst(ftp, p.as_deref()),
         Command::Noop => noop(ftp),
+        Command::Mlsd(p) => mlsd(ftp, p.as_deref()),
+        Command::Mlst(p) => mlst(ftp, p.as_deref()),
+        Command::Opts(n, v) => opts(ftp, n.as_str(), v.as_deref()),
         Command::Put(src, dest) => put(ftp, src.as_path(), dest.as_str()),
         Command::Pwd => pwd(ftp),
         Command::Rename(src, dest) => rename(ftp, src.as_str(), dest.as_str()),
         Command::Retr(file, dest) => retr(ftp, file.as_str(), dest.as_path()),
         Command::Rm(file) => rm(ftp, file.as_str()),
         Command::Rmdir(file) => rmdir(ftp, file.as_str()),
+        Command::Site(cmd) => site(ftp, cmd.as_str()),
         Command::Size(file) => size(ftp, file.as_str()),
+        Command::Stat(path) => stat(ftp, path.as_deref()),
         Command::Help | Command::Quit => {
             panic!("Something unexpected happened")
         }

@@ -7,13 +7,20 @@ pub enum Command {
     Cdup,
     Connect(String, bool),
     Cwd(String),
+    Dele(String),
+    Feat,
     Help,
+    Lang(Option<String>),
     List(Option<String>),
     Login,
     Mdtm(String),
     Mkdir(String),
     Mode(Mode),
+    Nlst(Option<String>),
     Noop,
+    Mlsd(Option<String>),
+    Mlst(Option<String>),
+    Opts(String, Option<String>),
     Put(PathBuf, String),
     Pwd,
     Quit,
@@ -21,7 +28,9 @@ pub enum Command {
     Retr(String, PathBuf),
     Rm(String),
     Rmdir(String),
+    Site(String),
     Size(String),
+    Stat(Option<String>),
 }
 
 impl FromStr for Command {
@@ -31,99 +40,130 @@ impl FromStr for Command {
         // Split string by space
         let mut args = s.split_ascii_whitespace();
         // Match args
-        match args.next() {
-            Some(cmd) => match cmd.to_ascii_uppercase().as_str() {
-                "APPE" => {
-                    let local: PathBuf = match args.next() {
-                        Some(l) => PathBuf::from(l),
-                        None => return Err("Missing `source` field"),
-                    };
-                    match args.next() {
-                        Some(d) => Ok(Self::Appe(local, d.to_string())),
-                        None => Err("Missing `dest` field"),
-                    }
-                },
-                "CDUP" => Ok(Self::Cdup),
-                "CONNECT" => match args.next() {
-                    Some(addr) => Ok(Self::Connect(addr.to_string(), false)),
-                    None => Err("Missing `addr` field"),
-                },
-                "CONNECT+S" => match args.next() {
-                    Some(addr) => Ok(Self::Connect(addr.to_string(), true)),
-                    None => Err("Missing `addr` field"),
-                },
-                "CWD" => match args.next() {
-                    Some(p) => Ok(Self::Cwd(p.to_string())),
-                    None => Err("Missing `dir` field"),
-                },
-                "HELP" => Ok(Self::Help),
-                "LIST" => match args.next() {
-                    Some(dir) => Ok(Self::List(Some(dir.to_string()))),
-                    None => Ok(Self::List(None)),
-                },
-                "LOGIN" => Ok(Self::Login),
-                "MDTM" => match args.next() {
-                    Some(file) => Ok(Self::Mdtm(file.to_string())),
-                    None => Err("Missing `file` field"),
-                },
-                "MKDIR" => match args.next() {
-                    Some(file) => Ok(Self::Mkdir(file.to_string())),
-                    None => Err("Missing `file` field"),
-                },
-                "MODE" => match args.next() {
-                    Some("ACTIVE") => Ok(Self::Mode(Mode::Active)),
-                    Some("PASSIVE") => Ok(Self::Mode(Mode::Passive)),
-                    Some(_) => Err("Invalid mode"),
-                    None => Err("Missing `mode` field"),
-                },
-                "NOOP" => Ok(Self::Noop),
-                "PUT" => {
-                    let local: PathBuf = match args.next() {
-                        Some(l) => PathBuf::from(l),
-                        None => return Err("Missing `source` field"),
-                    };
-                    match args.next() {
-                        Some(d) => Ok(Self::Put(local, d.to_string())),
-                        None => Err("Missing `dest` field"),
-                    }
-                }
-                "PWD" => Ok(Self::Pwd),
-                "QUIT" => Ok(Self::Quit),
-                "RENAME" => {
-                    let src: String = match args.next() {
-                        Some(s) => s.to_string(),
-                        None => return Err("Missing `src` field"),
-                    };
-                    match args.next() {
-                        Some(d) => Ok(Self::Rename(src, d.to_string())),
-                        None => Err("Missing `dest` field"),
-                    }
-                }
-                "RETR" => {
-                    let file: String = match args.next() {
-                        Some(f) => f.to_string(),
-                        None => return Err("Missing `file` field"),
-                    };
-                    match args.next() {
-                        Some(d) => Ok(Self::Retr(file, PathBuf::from(d))),
-                        None => Err("Missing `dest` field"),
-                    }
-                }
-                "RM" => match args.next() {
-                    Some(file) => Ok(Self::Rm(file.to_string())),
-                    None => Err("Missing `file` field"),
-                },
-                "RMDIR" => match args.next() {
-                    Some(dir) => Ok(Self::Rmdir(dir.to_string())),
-                    None => Err("Missing `file` field"),
-                },
-                "SIZE" => match args.next() {
-                    Some(dir) => Ok(Self::Size(dir.to_string())),
-                    None => Err("Missing `file` field"),
-                },
-                _ => Err("Unknown command"),
+        let cmd: String = args.next().ok_or("Unknown command")?.to_ascii_uppercase();
+        let command = match cmd.as_str() {
+            "APPE" => {
+                let local: PathBuf = args.next().ok_or("Missing `source` field")?.into();
+                let dest: String = args.next().ok_or("Missing `dest` field")?.into();
+                Self::Appe(local, dest)
             },
-            None => Err("Unknown command"),
-        }
+            "CDUP" => {
+                Self::Cdup
+            },
+            "CONNECT" => {
+                let addr: String = args.next().ok_or("Missing `addr` field")?.into();
+                Self::Connect(addr, false)
+            },
+            "CONNECT+S" => {
+                let addr: String = args.next().ok_or("Missing `addr` field")?.into();
+                Self::Connect(addr, true)
+            },
+            "CWD" => {
+                let dir: String = args.next().ok_or("Missing `dir` field")?.into();
+                Self::Cwd(dir)
+            },
+            "DELE" => {
+                let file: String = args.next().ok_or("Missing `file` field")?.into();
+                Self::Dele(file)
+            },
+            "FEAT" => {
+                Self::Feat
+            },
+            "HELP" => {
+                Self::Help
+            },
+            "LANG" => {
+                let lang: Option<String> = args.next().map(String::from);
+                Self::Lang(lang)
+            },
+            "LIST" => {
+                let dir: Option<String> = args.next().map(String::from);
+                Self::List(dir)
+            },
+            "LOGIN" => {
+                Self::Login
+            },
+            "MDTM" => {
+                let file: String = args.next().ok_or("Missing `file` field")?.into();
+                Self::Mdtm(file)
+            },
+            "MKDIR" => {
+                let dir: String = args.next().ok_or("Missing `dir` field")?.into();
+                Self::Mkdir(dir)
+            },
+            "MODE" => {
+                match args.next() {
+                    Some("ACTIVE") => Self::Mode(Mode::Active),
+                    Some("PASSIVE") => Self::Mode(Mode::Passive),
+                    Some(_) => return Err("Invalid mode"),
+                    None => return Err("Missing `mode` field"),
+                }
+            },
+            "NLST" => {
+                let dir: Option<String> = args.next().map(String::from);
+                Self::Nlst(dir)
+            },
+            "NOOP" => {
+                Self::Noop
+            },
+            "MLSD" => {
+                let dir: Option<String> = args.next().map(String::from);
+                Self::Mlsd(dir)
+            },
+            "MLST" => {
+                let dir: Option<String> = args.next().map(String::from);
+                Self::Mlst(dir)
+            },
+            "OPTS" => {
+                let name: String = args.next().ok_or("Missing `name` field")?.into();
+                let value: Option<String> = args.next().map(String::from);
+                Self::Opts(name, value)
+            },
+            "PUT" => {
+                let source: PathBuf = args.next().ok_or("Missing `source` field")?.into();
+                let dest: String = args.next().ok_or("Missing `dest` field")?.into();
+                Self::Put(source, dest)
+            },
+            "PWD" => {
+                Self::Pwd
+            },
+            "QUIT" => {
+                Self::Quit
+            },
+            "RENAME" => {
+                let source: String = args.next().ok_or("Missing `source` field")?.into();
+                let dest: String = args.next().ok_or("Missing `dest` field")?.into();
+                Self::Rename(source, dest)
+            },
+            "RETR" => {
+                let source: String = args.next().ok_or("Missing `file` field")?.into();
+                let dest: PathBuf = args.next().ok_or("Missing `dest` field")?.into();
+                Self::Retr(source, dest)
+            },
+            "RM" => {
+                let file: String = args.next().ok_or("Missing `file` field")?.into();
+                Self::Rm(file)
+            },
+            "RMDIR" => {
+                let dir: String = args.next().ok_or("Missing `dir` field")?.into();
+                Self::Rmdir(dir)
+            },
+            "SITE" => {
+                let cmd: String = args.next().ok_or("Missing `cmd` field")?.into();
+                Self::Site(cmd)
+            },
+            "SIZE" => {
+                let file: String = args.next().ok_or("Missing `file` field")?.into();
+                Self::Size(file)
+            },
+            "STAT" => {
+                let path: Option<String> = args.next().map(String::from);
+                Self::Stat(path)
+            },
+            _ => {
+                return Err("Unknown command")
+            }
+        };
+        Ok(command)
     }
 }

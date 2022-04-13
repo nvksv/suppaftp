@@ -75,6 +75,8 @@ pub enum Command {
     Site(String),
     /// Get file size of specified path
     Size(String),
+    /// Returns information on the server status, including the status of the current connection
+    Stat(Option<String>),
     /// Put file at specified path
     Store(String),
     /// Set transfer type
@@ -123,6 +125,7 @@ impl Command {
     impl_command_new_str!(Rmd, new_rmd);
     impl_command_new_str!(Site, new_site);
     impl_command_new_str!(Size, new_size);
+    impl_command_new_optstr!(Stat, new_stat);
     impl_command_new_str!(Store, new_store);
     impl_command_new_str!(User, new_user);
 }
@@ -194,6 +197,10 @@ impl ToString for Command {
             Self::Rmd(p) => format!("RMD {}", p),
             Self::Site(p) => format!("SITE {}", p),
             Self::Size(p) => format!("SIZE {}", p),
+            Self::Stat(p) => match p {
+                Some(p) => format!("STAT {}", p),
+                None => "STAT".to_string(),
+            },
             Self::Store(p) => format!("STOR {}", p),
             Self::Type(t) => format!("TYPE {}", t.to_string()),
             Self::User(u) => format!("USER {}", u),

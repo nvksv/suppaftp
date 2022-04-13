@@ -491,6 +491,13 @@ impl FtpStream {
         response.body_into_inline_result()
     }
 
+    /// Returns information on the server status, including the status of the current connection
+    pub async fn stat<S: AsRef<str>>(&mut self, path: Option<S>) -> FtpResult<Vec<String>> {
+        debug!("Stat '{}'", optstrref(&path));
+        let response = self.command(Command::new_stat(path), &[Status::System, Status::Directory, Status::File]).await?;
+        Ok(response.body.into_vec())
+    }
+
     /// Retrieves the size of the file in bytes at `pathname` if it exists.
     pub async fn size<S: AsRef<str>>(&mut self, pathname: S) -> FtpResult<usize> {
         debug!("Getting file size for {}", pathname.as_ref());

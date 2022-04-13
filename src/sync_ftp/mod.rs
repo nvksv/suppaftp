@@ -22,6 +22,7 @@ use std::str::FromStr;
 use std::string::String;
 
 /// Some data for TLS mode
+#[cfg(feature = "secure")]
 #[derive(Debug)]
 pub struct TlsCtx {
     pub tls_connector: TlsConnector,
@@ -531,6 +532,13 @@ impl FtpStream {
         debug!("SITE '{}'", cmd.as_ref());
         let response = self.command(Command::new_site(cmd), &[Status::CommandOk])?;
         response.body_into_inline_result()
+    }
+
+    /// Returns information on the server status, including the status of the current connection
+    pub fn stat<S: AsRef<str>>(&mut self, path: Option<S>) -> FtpResult<Vec<String>> {
+        debug!("Stat '{}'", optstrref(&path));
+        let response = self.command(Command::new_stat(path), &[Status::System, Status::Directory, Status::File])?;
+        Ok(response.body.into_vec())
     }
 
     /// Retrieves the size of the file in bytes at `pathname` if it exists.
