@@ -45,7 +45,7 @@ serial_test = "^0.5.1"
 
 [features]
 ## nvksv
-#default = ["with-containers", "async-secure"]
+default = ["with-containers", "async-secure"]
 #default = ["with-containers", "async"]
 #default = ["with-containers", "secure"]
 #default = ["with-containers"]

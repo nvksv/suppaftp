@@ -35,6 +35,7 @@ pub struct TlsCtx {
 pub struct FtpStream {
     reader: BufReader<DataStream>,
     mode: Mode,
+    skip450: bool,
     #[cfg(not(feature = "support-ftpclient"))]
     welcome_msg: Option<String>,
     #[cfg(feature = "async-secure")]
@@ -51,6 +52,7 @@ impl FtpStream {
         let mut ftp_stream = FtpStream {
             reader: BufReader::new(DataStream::Tcp(stream)),
             mode: Mode::Passive,
+            skip450: false,
             #[cfg(not(feature = "support-ftpclient"))]
             welcome_msg: None,
             #[cfg(feature = "async-secure")]
@@ -91,6 +93,7 @@ impl FtpStream {
     /// ## Example
     ///
     /// ```rust,no_run
+    /// # tokio_test::block_on(async {
     /// use suppaftp::FtpStream;
     /// use suppaftp::async_native_tls::{TlsConnector, TlsStream};
     /// use std::path::Path;
@@ -100,6 +103,7 @@ impl FtpStream {
     /// let mut ctx = TlsConnector::new();
     /// let mut ftp_stream = FtpStream::connect("ftp.server.local:21").await.unwrap();
     /// let mut ftp_stream = ftp_stream.into_secure(ctx, "localhost").await.unwrap();
+    /// # });
     /// ```
     #[cfg(feature = "async-secure")]
     pub async fn into_secure(
@@ -121,6 +125,7 @@ impl FtpStream {
         let mut secured_ftp_stream = FtpStream {
             reader: BufReader::new(DataStream::Ssl(stream.into())),
             mode: self.mode,
+            skip450: false,
             tls_ctx: Some(TlsCtx{ tls_connector, domain: domain.into() }),
             #[cfg(not(feature = "support-ftpclient"))]
             welcome_msg: self.welcome_msg,
@@ -162,7 +167,7 @@ impl FtpStream {
     /// Perform clear command channel (CCC).
     /// Once the command is performed, the command channel will be encrypted no more.
     /// The data stream will still be secure.
-    #[cfg(feature = "secure")]
+    #[cfg(feature = "async-secure")]
     pub async fn clear_command_channel(mut self) -> FtpResult<Self> {
         // Ask the server to stop securing data
         debug!("performing clear command channel");
@@ -375,6 +380,10 @@ impl FtpStream {
         trace!("dropped stream");
         self.read_response_in(&[Status::ClosingDataConnection, Status::TransferAborted]).await?;
         self.read_response(Status::ClosingDataConnection).await?;
+
+        // Sometimes ProFTPd sends three lines, so we must to skip the last one "450 Transfer aborted. Link to file server lost"
+        self.skip450 = true;
+
         trace!("Transfer aborted");
         Ok(())
     }
@@ -556,7 +565,25 @@ impl FtpStream {
             return Err(FtpError::BadResponse);
         }
 
-        let (status, delim, head) = parse_status_delim_tail(line)?;
+        let (mut status, mut delim, mut head) = parse_status_delim_tail(line)?;
+
+        if self.skip450 {
+            self.skip450 = false;
+
+            if status == Status::RequestFileActionIgnored {
+                // Skip this status and retrieve next line
+
+                line = self.read_line(&mut line_buffer).await?;
+
+                trace!("CC IN: {}", line.trim_end());
+        
+                if line.len() < CODE_LENGTH+1 {
+                    return Err(FtpError::BadResponse);
+                }
+
+                (status, delim, head) = parse_status_delim_tail(line)?;
+            }
+        }
 
         let response = match delim {
             SPACE_CHAR => {
@@ -755,7 +782,7 @@ impl FtpStream {
 mod test {
 
     use super::*;
-    use crate::utils::test::*;
+    use crate::test::*;
     #[cfg(feature = "with-containers")]
     use crate::types::FormatControl;
 
@@ -1001,9 +1028,10 @@ mod test {
         assert!(stream.abort(transfer_stream).await.is_ok());
         // Check whether other commands still work after transfer
         assert!(stream.pwd().await.is_ok());
-        assert!(stream.rm("test.bin").await.is_ok());
         // Check whether data channel still works
         assert!(stream.list(None).await.is_ok());
+        // cleanup
+        let _ = stream.rm("test.bin").await;
         finalize_stream(stream).await;
     }
 
@@ -1031,7 +1059,7 @@ mod test {
         drop(stream);
         drop(transfer_stream);
         // Re-connect to server
-        let mut stream = FtpStream::connect("127.0.0.1:10021").await.unwrap();
+        let mut stream = setup_stream().await;
         assert!(stream.login("test", "test").await.is_ok());
         // Go back to previous dir
         assert!(stream.cwd(wrkdir).await.is_ok());

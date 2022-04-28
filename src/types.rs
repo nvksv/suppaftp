@@ -389,7 +389,7 @@ mod test {
     fn response() {
         let response: Response = Response::new_inline(Status::AboutToSend, "error");
         assert_eq!(response.status, Status::AboutToSend);
-        assert_eq!(response.body.as_str(), "error");
+        assert_eq!(response.body.to_string().as_str(), "error");
     }
 
     #[test]

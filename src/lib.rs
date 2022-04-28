@@ -69,12 +69,11 @@
 //! ### FTPS Usage
 //!
 //! ```rust
-//! extern crate suppaftp;
-//!
+//! # #[cfg(any(feature = "secure", feature = "async-secure"))] {
 //! use suppaftp::FtpStream;
-//! use suppaftp::native_tls::{TlsConnector, TlsStream};
+//! use native_tls::{TlsConnector, TlsStream};
 //!
-//! let ftp_stream = FtpStream::connect("test.rebex.net:21").unwrap();
+//! let ftp_stream = FtpStream::connect("ftp.server.local:21").unwrap();
 //! // Switch to the secure mode
 //! let mut ftp_stream = ftp_stream.into_secure(TlsConnector::new().unwrap(), "test.rebex.net").unwrap();
 //! ftp_stream.login("demo", "password").unwrap();
@@ -83,6 +82,7 @@
 //! let mut ftp_stream = ftp_stream.into_insecure().unwrap();
 //! // Do all public stuff
 //! assert!(ftp_stream.quit().is_ok());
+//! # }
 //! ```
 //!
 //! ## Going async
@@ -159,7 +159,8 @@ pub fn log_init() {
 }
 
 pub mod test {
-    pub const TEST_SERVER_ADDR: &str = "ftp.server.local:21";
+//    pub const TEST_SERVER_ADDR: &str = "ftp.server.local:21";
+    pub const TEST_SERVER_ADDR: &str = "192.168.8.222:21";
     pub const TEST_SERVER_LOGIN: &str = "test";
     pub const TEST_SERVER_PASSWORD: &str = "test";
 //    pub const TEST_SERVER_WELCOME: &str = "220 You will be disconnected after 15 minutes of inactivity.";
