@@ -14,10 +14,13 @@ use super::utils::*;
 
 #[cfg(feature = "async-secure")]
 use async_native_tls::TlsConnector;
-use async_std::io::{copy, BufReader, Read, Write}; // Cursor
-use async_std::net::ToSocketAddrs;
-use async_std::net::{SocketAddr, TcpListener, TcpStream};
-use async_std::prelude::*;
+#[cfg(any(feature = "async", feature = "async-secure"))]
+use async_std::{
+    io::{copy, BufReader, Read, Write},
+    net::ToSocketAddrs,
+    net::{SocketAddr, TcpListener, TcpStream},
+    prelude::*
+};
 use chrono::offset::TimeZone;
 use chrono::{DateTime, Utc};
 use std::str::FromStr;
@@ -31,6 +34,7 @@ pub struct TlsCtx {
 }
 
 /// Stream to interface with the FTP server. This interface is only for the command stream.
+#[maybe_async::both (idents = "BufReader")]
 #[derive(Debug)]
 pub struct FtpStream {
     reader: BufReader<DataStream>,
@@ -42,14 +46,40 @@ pub struct FtpStream {
     tls_ctx: Option<TlsCtx>,
 }
 
+// impl FtpStreamSync {
+//     fn connect_tcp_stream<A: std::net::ToSocketAddrs>(addr: A) -> std::io::Result<std::net::TcpStream> {
+//         std::net::TcpStream::connect(addr)
+//     }
+// }
+
+// #[cfg(any(feature = "async", feature = "async-secure"))]
+// impl FtpStreamAsync {
+//     async fn connect_tcp_stream<A: async_std::net::ToSocketAddrs>(addr: A) -> std::io::Result<async_std::net::TcpStream> {
+//         async_std::net::TcpStream::connect(addr).await
+//     }
+// }
+
+#[maybe_async::both]
 impl FtpStream {
     /// Creates an FTP Stream.
     pub async fn connect<A: ToSocketAddrs>(addr: A) -> FtpResult<Self> {
         debug!("Connecting to server");
-        let stream = TcpStream::connect(addr).await?;
+
+        let stream;
+        
+        #[async_impl]
+        {
+            async_std::net::TcpStream::connect(addr).await    
+        };
+
+        #[sync_impl]
+        {
+            std::net::TcpStream::connect(addr)    
+        };
+
         debug!("Established connection with server");
 
-        let mut ftp_stream = FtpStream {
+        let mut ftp_stream = Self {
             reader: BufReader::new(DataStream::Tcp(stream)),
             mode: Mode::Passive,
             skip450: false,
@@ -122,7 +152,7 @@ impl FtpStream {
         ).await?;
         debug!("TLS stream OK");
 
-        let mut secured_ftp_stream = FtpStream {
+        let mut secured_ftp_stream = Self {
             reader: BufReader::new(DataStream::Ssl(stream.into())),
             mode: self.mode,
             skip450: false,
@@ -805,6 +835,7 @@ mod test {
     #[async_attributes::test]
     #[cfg(feature = "async-secure")]
     #[serial]
+    #[maybe_async::both]
     async fn connect_ssl() {
         let ftp_stream = FtpStream::connect(TEST_SSL_SERVER_ADDR).await.unwrap();
         let mut ftp_stream = ftp_stream

@@ -122,12 +122,12 @@ extern crate lazy_static;
 extern crate log;
 
 // -- private
-#[cfg(any(feature = "async", feature = "async-secure"))]
-mod async_ftp;
+//#[cfg(any(feature = "async", feature = "async-secure"))]
+mod ftp;
 pub(crate) mod command;
 mod status;
-#[cfg(any(test, not(any(feature = "async", feature = "async-secure"))))]
-mod sync_ftp;
+//#[cfg(any(test, not(any(feature = "async", feature = "async-secure"))))]
+//mod sync_ftp;
 
 mod utils;
 
@@ -144,10 +144,14 @@ pub extern crate async_native_tls;
 
 // -- export async
 #[cfg(any(feature = "async", feature = "async-secure"))]
+mod async_ftp {
+    pub use crate::ftp::FtpStreamAsync as FtpStream;
+}
+#[cfg(any(feature = "async", feature = "async-secure"))]
 pub use async_ftp::FtpStream;
 // -- export sync
 #[cfg(not(any(feature = "async", feature = "async-secure")))]
-pub use sync_ftp::FtpStream;
+pub use ftp::FtpStreamSync as FtpStream;
 // -- export (common)
 pub use status::Status;
 pub use types::{FtpError, FtpResult, Mode};
