@@ -87,7 +87,7 @@ impl From<std::net::AddrParseError> for FtpError {
     }
 }
 
-#[cfg(feature = "secure")]
+#[cfg(any(feature = "secure", feature = "async-secure"))]
 impl<S: 'static> From<native_tls::HandshakeError<S>> for FtpError
 where
     S: std::io::Read + std::io::Write + std::fmt::Debug

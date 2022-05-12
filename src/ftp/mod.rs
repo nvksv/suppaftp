@@ -9,24 +9,35 @@ use super::Status;
 use crate::command::Command;
 #[cfg(feature = "async-secure")]
 use crate::command::ProtectionLevel;
-use data_stream::DataStream;
+use data_stream::DataStreamSync;
+#[cfg(any(feature = "async", feature = "async-secure"))]
+use data_stream::DataStreamAsync;
 use super::utils::*;
 
 #[cfg(feature = "async-secure")]
-use async_native_tls::TlsConnector;
+use async_native_tls::TlsConnector as TlsConnectorAsync;
 #[cfg(any(feature = "async", feature = "async-secure"))]
 use async_std::{
-    io::{copy, BufReader, Read, Write},
-    net::ToSocketAddrs,
-    net::{SocketAddr, TcpListener, TcpStream},
+    io::{copy as copy_async, BufReader as BufReaderAsync, Read as ReadAsync, Write as WriteAsync},
+    net::ToSocketAddrs as ToSocketAddrsAsync,
+    net::{SocketAddr as SocketAddrAsync, TcpListener as TcpListenerAsync, TcpStream as TcpStreamAsync},
     prelude::*
 };
+
+#[cfg(any(feature = "secure",feature = "async-secure"))]
+use native_tls::TlsConnector as TlsConnectorSync;
+use std::{
+    io::{copy as copy_sync, BufRead, BufReader as BufReaderSync, Read as ReadSync, Write as WriteSync},
+    net::{SocketAddr as SocketAddrSync, TcpListener as TcpListenerSync, TcpStream as TcpStreamSync, ToSocketAddrs as ToSocketAddrsSync},
+};
+
 use chrono::offset::TimeZone;
 use chrono::{DateTime, Utc};
 use std::str::FromStr;
 use std::string::String;
 
 /// Some data for TLS mode
+#[maybe_async::both(idents = "BufReader, DataStream, TlsConnector")]
 #[derive(Debug)]
 pub struct TlsCtx {
     pub tls_connector: TlsConnector,
@@ -34,7 +45,7 @@ pub struct TlsCtx {
 }
 
 /// Stream to interface with the FTP server. This interface is only for the command stream.
-#[maybe_async::both (idents = "BufReader")]
+#[maybe_async::both(idents = "BufReader, DataStream, TlsCtx")]
 #[derive(Debug)]
 pub struct FtpStream {
     reader: BufReader<DataStream>,
@@ -59,24 +70,13 @@ pub struct FtpStream {
 //     }
 // }
 
-#[maybe_async::both]
+#[maybe_async::both(idents = "DataStream, TlsConnector, TlsCtx, BufReader, TcpStream, ToSocketAddrs, SocketAddr, TcpListener, Read, Write, fn copy")]
 impl FtpStream {
     /// Creates an FTP Stream.
     pub async fn connect<A: ToSocketAddrs>(addr: A) -> FtpResult<Self> {
         debug!("Connecting to server");
 
-        let stream;
-        
-        #[async_impl]
-        {
-            async_std::net::TcpStream::connect(addr).await    
-        };
-
-        #[sync_impl]
-        {
-            std::net::TcpStream::connect(addr)    
-        };
-
+        let stream = TcpStream::connect(addr).await?;
         debug!("Established connection with server");
 
         let mut ftp_stream = Self {
@@ -148,7 +148,7 @@ impl FtpStream {
 
         let stream = tls_connector.connect(
             domain, 
-            self.reader.into_inner().into_tcp_stream().to_owned()
+            self.reader.into_inner().into_tcp_stream()
         ).await?;
         debug!("TLS stream OK");
 
@@ -728,11 +728,11 @@ impl FtpStream {
         let addr = listener.local_addr()?;
         trace!("Local address is {}", addr);
 
-        let tcp_stream = match self.reader.get_mut() {
+        let tcp_stream = match self.reader.get_ref() {
             DataStream::Tcp(stream) => stream,
 
             #[cfg(feature = "async-secure")]
-            DataStream::Ssl(stream) => stream.get_mut(),
+            DataStream::Ssl(stream) => stream.get_ref(),
         };
         let ip = tcp_stream.local_addr().unwrap().ip();
 

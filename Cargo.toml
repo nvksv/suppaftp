@@ -27,6 +27,7 @@ lazy_static = "^1.4.0"
 log = "^0.4.0"
 regex = "^1.4.2"
 thiserror = "^1.0.0"
+async-trait = "0.1"
 #maybe-async = { version = "0.2" }
 maybe-async = { path = "../maybe-async-rs", package = "maybe-async" }
 # async
@@ -53,7 +54,7 @@ secure = ["sync-secure"]
 
 # Enable async support for suppaftp
 async = ["maybe-async/is_sync", "maybe-async/is_async", "dep:async-std", "dep:pin-project"]
-async-secure = ["maybe-async/is_sync", "maybe-async/is_async", "dep:async-std", "dep:async-native-tls", "dep:pin-project"]
+async-secure = ["maybe-async/is_sync", "maybe-async/is_async", "dep:native-tls", "dep:async-std", "dep:async-native-tls", "dep:pin-project"]
 
 # Enable support of FTPS which requires native-tls (openssl is required on Linux)
 sync = ["maybe-async/is_sync"]
