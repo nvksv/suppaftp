@@ -7,12 +7,14 @@ mod ftp {
         //!
         //! This module exposes the async data stream implementation where bytes must be written to/read from
         #[cfg(feature = "async-secure")]
-        use async_native_tls::TlsStream;
+        use async_native_tls::TlsStream as TlsStreamAsync;
         #[cfg(any(feature = "async", feature = "async-secure"))]
         use async_std::{
             io::{Read as ReadAsync, Result as ResultAsync, Write as WriteAsync},
             net::TcpStream as TcpStreamAsync,
         };
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        use native_tls::TlsStream as TlsStreamSync;
         use std::{
             io::{Read as ReadSync, Result as ResultSync, Write as WriteSync},
             net::TcpStream as TcpStreamSync,
@@ -20,108 +22,7 @@ mod ftp {
         use pin_project::pin_project;
         use std::pin::Pin;
         /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
-        # [pin (__private (project = DataStreamProj))]
-        pub enum DataStreamSync {
-            Tcp(#[pin] TcpStreamSync),
-            #[cfg(feature = "async-secure")]
-            Ssl(#[pin] TlsStreamSync<TcpStreamSync>),
-        }
-        #[allow(box_pointers)]
-        #[allow(deprecated)]
-        #[allow(explicit_outlives_requirements)]
-        #[allow(single_use_lifetimes)]
-        #[allow(unreachable_pub)]
-        #[allow(clippy::unknown_clippy_lints)]
-        #[allow(clippy::pattern_type_mismatch)]
-        #[allow(clippy::redundant_pub_crate)]
-        #[allow(clippy::type_repetition_in_bounds)]
-        #[allow(dead_code)]
-        #[allow(clippy::mut_mut)]
-        pub(crate) enum DataStreamProj<'pin>
-        where
-            DataStreamSync: 'pin,
-        {
-            Tcp(::pin_project::__private::Pin<&'pin mut (TcpStreamSync)>),
-            Ssl(::pin_project::__private::Pin<&'pin mut (TlsStreamSync<TcpStreamSync>)>),
-        }
-        #[allow(box_pointers)]
-        #[allow(deprecated)]
-        #[allow(explicit_outlives_requirements)]
-        #[allow(single_use_lifetimes)]
-        #[allow(unreachable_pub)]
-        #[allow(clippy::unknown_clippy_lints)]
-        #[allow(clippy::pattern_type_mismatch)]
-        #[allow(clippy::redundant_pub_crate)]
-        #[allow(clippy::type_repetition_in_bounds)]
-        #[allow(unused_qualifications)]
-        #[allow(clippy::semicolon_if_nothing_returned)]
-        #[allow(clippy::use_self)]
-        #[allow(clippy::used_underscore_binding)]
-        const _: () = {
-            #[allow(unused_extern_crates)]
-            extern crate pin_project as _pin_project;
-            impl DataStreamSync {
-                pub(crate) fn project<'pin>(
-                    self: _pin_project::__private::Pin<&'pin mut Self>,
-                ) -> DataStreamProj<'pin> {
-                    unsafe {
-                        match self.get_unchecked_mut() {
-                            Self::Tcp(_0) => {
-                                DataStreamProj::Tcp(_pin_project::__private::Pin::new_unchecked(_0))
-                            }
-                            Self::Ssl(_0) => {
-                                DataStreamProj::Ssl(_pin_project::__private::Pin::new_unchecked(_0))
-                            }
-                        }
-                    }
-                }
-            }
-            #[allow(missing_debug_implementations)]
-            pub struct __DataStreamSync<'pin> {
-                __pin_project_use_generics: _pin_project::__private::AlwaysUnpin<'pin, ()>,
-                __field0: TcpStreamSync,
-                __field1: TlsStreamSync<TcpStreamSync>,
-            }
-            impl<'pin> _pin_project::__private::Unpin for DataStreamSync where
-                __DataStreamSync<'pin>: _pin_project::__private::Unpin
-            {
-            }
-            #[doc(hidden)]
-            unsafe impl<'pin> _pin_project::UnsafeUnpin for DataStreamSync where
-                __DataStreamSync<'pin>: _pin_project::__private::Unpin
-            {
-            }
-            trait DataStreamSyncMustNotImplDrop {}
-            #[allow(clippy::drop_bounds, drop_bounds)]
-            impl<T: _pin_project::__private::Drop> DataStreamSyncMustNotImplDrop for T {}
-            impl DataStreamSyncMustNotImplDrop for DataStreamSync {}
-            #[doc(hidden)]
-            impl _pin_project::__private::PinnedDrop for DataStreamSync {
-                unsafe fn drop(self: _pin_project::__private::Pin<&mut Self>) {}
-            }
-        };
-        #[automatically_derived]
-        #[allow(unused_qualifications)]
-        impl ::core::fmt::Debug for DataStreamSync {
-            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                match (&*self,) {
-                    (&DataStreamSync::Tcp(ref __self_0),) => {
-                        let debug_trait_builder =
-                            &mut ::core::fmt::Formatter::debug_tuple(f, "Tcp");
-                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
-                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
-                    }
-                    (&DataStreamSync::Ssl(ref __self_0),) => {
-                        let debug_trait_builder =
-                            &mut ::core::fmt::Formatter::debug_tuple(f, "Ssl");
-                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
-                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
-                    }
-                }
-            }
-        }
-        /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
-        # [pin (__private (project = DataStreamProj))]
+        # [pin (__private (project = DataStreamProjAsync))]
         pub enum DataStreamAsync {
             Tcp(#[pin] TcpStreamAsync),
             #[cfg(feature = "async-secure")]
@@ -138,7 +39,7 @@ mod ftp {
         #[allow(clippy::type_repetition_in_bounds)]
         #[allow(dead_code)]
         #[allow(clippy::mut_mut)]
-        pub(crate) enum DataStreamProj<'pin>
+        pub(crate) enum DataStreamProjAsync<'pin>
         where
             DataStreamAsync: 'pin,
         {
@@ -164,15 +65,15 @@ mod ftp {
             impl DataStreamAsync {
                 pub(crate) fn project<'pin>(
                     self: _pin_project::__private::Pin<&'pin mut Self>,
-                ) -> DataStreamProj<'pin> {
+                ) -> DataStreamProjAsync<'pin> {
                     unsafe {
                         match self.get_unchecked_mut() {
-                            Self::Tcp(_0) => {
-                                DataStreamProj::Tcp(_pin_project::__private::Pin::new_unchecked(_0))
-                            }
-                            Self::Ssl(_0) => {
-                                DataStreamProj::Ssl(_pin_project::__private::Pin::new_unchecked(_0))
-                            }
+                            Self::Tcp(_0) => DataStreamProjAsync::Tcp(
+                                _pin_project::__private::Pin::new_unchecked(_0),
+                            ),
+                            Self::Ssl(_0) => DataStreamProjAsync::Ssl(
+                                _pin_project::__private::Pin::new_unchecked(_0),
+                            ),
                         }
                     }
                 }
@@ -221,12 +122,104 @@ mod ftp {
                 }
             }
         }
-        impl DataStreamSync {
-            /// Unwrap the stream into TcpStream. This method is only used in secure connection.
-            pub fn into_tcp_stream(self) -> TcpStreamSync {
-                match self {
-                    DataStreamSync::Tcp(stream) => stream,
-                    DataStreamSync::Ssl(stream) => stream.get_ref().clone(),
+        /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
+        # [pin (__private (project = DataStreamProjSync))]
+        pub enum DataStreamSync {
+            Tcp(#[pin] TcpStreamSync),
+            #[cfg(feature = "async-secure")]
+            Ssl(#[pin] TlsStreamWrapperSync),
+        }
+        #[allow(box_pointers)]
+        #[allow(deprecated)]
+        #[allow(explicit_outlives_requirements)]
+        #[allow(single_use_lifetimes)]
+        #[allow(unreachable_pub)]
+        #[allow(clippy::unknown_clippy_lints)]
+        #[allow(clippy::pattern_type_mismatch)]
+        #[allow(clippy::redundant_pub_crate)]
+        #[allow(clippy::type_repetition_in_bounds)]
+        #[allow(dead_code)]
+        #[allow(clippy::mut_mut)]
+        pub(crate) enum DataStreamProjSync<'pin>
+        where
+            DataStreamSync: 'pin,
+        {
+            Tcp(::pin_project::__private::Pin<&'pin mut (TcpStreamSync)>),
+            Ssl(::pin_project::__private::Pin<&'pin mut (TlsStreamWrapperSync)>),
+        }
+        #[allow(box_pointers)]
+        #[allow(deprecated)]
+        #[allow(explicit_outlives_requirements)]
+        #[allow(single_use_lifetimes)]
+        #[allow(unreachable_pub)]
+        #[allow(clippy::unknown_clippy_lints)]
+        #[allow(clippy::pattern_type_mismatch)]
+        #[allow(clippy::redundant_pub_crate)]
+        #[allow(clippy::type_repetition_in_bounds)]
+        #[allow(unused_qualifications)]
+        #[allow(clippy::semicolon_if_nothing_returned)]
+        #[allow(clippy::use_self)]
+        #[allow(clippy::used_underscore_binding)]
+        const _: () = {
+            #[allow(unused_extern_crates)]
+            extern crate pin_project as _pin_project;
+            impl DataStreamSync {
+                pub(crate) fn project<'pin>(
+                    self: _pin_project::__private::Pin<&'pin mut Self>,
+                ) -> DataStreamProjSync<'pin> {
+                    unsafe {
+                        match self.get_unchecked_mut() {
+                            Self::Tcp(_0) => DataStreamProjSync::Tcp(
+                                _pin_project::__private::Pin::new_unchecked(_0),
+                            ),
+                            Self::Ssl(_0) => DataStreamProjSync::Ssl(
+                                _pin_project::__private::Pin::new_unchecked(_0),
+                            ),
+                        }
+                    }
+                }
+            }
+            #[allow(missing_debug_implementations)]
+            pub struct __DataStreamSync<'pin> {
+                __pin_project_use_generics: _pin_project::__private::AlwaysUnpin<'pin, ()>,
+                __field0: TcpStreamSync,
+                __field1: TlsStreamWrapperSync,
+            }
+            impl<'pin> _pin_project::__private::Unpin for DataStreamSync where
+                __DataStreamSync<'pin>: _pin_project::__private::Unpin
+            {
+            }
+            #[doc(hidden)]
+            unsafe impl<'pin> _pin_project::UnsafeUnpin for DataStreamSync where
+                __DataStreamSync<'pin>: _pin_project::__private::Unpin
+            {
+            }
+            trait DataStreamSyncMustNotImplDrop {}
+            #[allow(clippy::drop_bounds, drop_bounds)]
+            impl<T: _pin_project::__private::Drop> DataStreamSyncMustNotImplDrop for T {}
+            impl DataStreamSyncMustNotImplDrop for DataStreamSync {}
+            #[doc(hidden)]
+            impl _pin_project::__private::PinnedDrop for DataStreamSync {
+                unsafe fn drop(self: _pin_project::__private::Pin<&mut Self>) {}
+            }
+        };
+        #[automatically_derived]
+        #[allow(unused_qualifications)]
+        impl ::core::fmt::Debug for DataStreamSync {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                match (&*self,) {
+                    (&DataStreamSync::Tcp(ref __self_0),) => {
+                        let debug_trait_builder =
+                            &mut ::core::fmt::Formatter::debug_tuple(f, "Tcp");
+                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
+                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
+                    }
+                    (&DataStreamSync::Ssl(ref __self_0),) => {
+                        let debug_trait_builder =
+                            &mut ::core::fmt::Formatter::debug_tuple(f, "Ssl");
+                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
+                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
+                    }
                 }
             }
         }
@@ -236,6 +229,15 @@ mod ftp {
                 match self {
                     DataStreamAsync::Tcp(stream) => stream,
                     DataStreamAsync::Ssl(stream) => stream.get_ref().clone(),
+                }
+            }
+        }
+        impl DataStreamSync {
+            /// Unwrap the stream into TcpStream. This method is only used in secure connection.
+            pub fn into_tcp_stream(self) -> TcpStreamSync {
+                match self {
+                    DataStreamSync::Tcp(stream) => stream,
+                    DataStreamSync::Ssl(stream) => stream.tcp_stream(),
                 }
             }
         }
@@ -259,7 +261,172 @@ mod ftp {
                 }
             }
         }
-        # [async_trait :: async_trait (? Send)]
+        impl ReadSync for DataStreamSync {
+            fn read(&mut self, buf: &mut [u8]) -> ResultSync<usize> {
+                match self {
+                    DataStreamSync::Tcp(ref mut stream) => stream.read(buf),
+                    #[cfg(any(feature = "secure", feature = "async-secure"))]
+                    DataStreamSync::Ssl(ref mut stream) => stream.mut_ref().read(buf),
+                }
+            }
+        }
+        impl WriteSync for DataStreamSync {
+            fn write(&mut self, buf: &[u8]) -> ResultSync<usize> {
+                match self {
+                    DataStreamSync::Tcp(ref mut stream) => stream.write(buf),
+                    #[cfg(any(feature = "secure", feature = "async-secure"))]
+                    DataStreamSync::Ssl(ref mut stream) => stream.mut_ref().write(buf),
+                }
+            }
+            fn flush(&mut self) -> ResultSync<()> {
+                match self {
+                    DataStreamSync::Tcp(ref mut stream) => stream.flush(),
+                    #[cfg(any(feature = "secure", feature = "async-secure"))]
+                    DataStreamSync::Ssl(ref mut stream) => stream.mut_ref().flush(),
+                }
+            }
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        /// Tls stream wrapper. This type is a garbage data type used to impl the drop trait for the tls stream.
+        /// This allows me to keep returning `Read` and `Write` traits in stream methods
+        pub struct TlsStreamWrapperSync {
+            stream: TlsStreamSync<TcpStreamSync>,
+            ssl_shutdown: bool,
+        }
+        #[automatically_derived]
+        #[allow(unused_qualifications)]
+        impl ::core::fmt::Debug for TlsStreamWrapperSync {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                match *self {
+                    TlsStreamWrapperSync {
+                        stream: ref __self_0_0,
+                        ssl_shutdown: ref __self_0_1,
+                    } => {
+                        let debug_trait_builder =
+                            &mut ::core::fmt::Formatter::debug_struct(f, "TlsStreamWrapperSync");
+                        let _ = ::core::fmt::DebugStruct::field(
+                            debug_trait_builder,
+                            "stream",
+                            &&(*__self_0_0),
+                        );
+                        let _ = ::core::fmt::DebugStruct::field(
+                            debug_trait_builder,
+                            "ssl_shutdown",
+                            &&(*__self_0_1),
+                        );
+                        ::core::fmt::DebugStruct::finish(debug_trait_builder)
+                    }
+                }
+            }
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        impl TlsStreamWrapperSync {
+            /// Get underlying tcp stream
+            pub(crate) fn tcp_stream(mut self) -> TcpStreamSync {
+                let mut stream = self.stream.get_ref().try_clone().unwrap();
+                self.ssl_shutdown = false;
+                if let Err(err) = stream.flush() {
+                    {
+                        let lvl = ::log::Level::Error;
+                        if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
+                            ::log::__private_api_log(
+                                ::core::fmt::Arguments::new_v1(
+                                    &["Error in flushing tcp stream: "],
+                                    &[::core::fmt::ArgumentV1::new_display(&err)],
+                                ),
+                                lvl,
+                                &(
+                                    "suppaftp::ftp::data_stream",
+                                    "suppaftp::ftp::data_stream",
+                                    "src\\ftp\\data_stream.rs",
+                                    124u32,
+                                ),
+                                ::log::__private_api::Option::None,
+                            );
+                        }
+                    };
+                }
+                {
+                    let lvl = ::log::Level::Trace;
+                    if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
+                        ::log::__private_api_log(
+                            ::core::fmt::Arguments::new_v1(&["TLS stream terminated"], &[]),
+                            lvl,
+                            &(
+                                "suppaftp::ftp::data_stream",
+                                "suppaftp::ftp::data_stream",
+                                "src\\ftp\\data_stream.rs",
+                                126u32,
+                            ),
+                            ::log::__private_api::Option::None,
+                        );
+                    }
+                };
+                stream
+            }
+            /// Get ref to underlying tcp stream
+            pub(crate) fn get_ref(&self) -> &TcpStreamSync {
+                self.stream.get_ref()
+            }
+            /// Get mutable reference to tls stream
+            pub(crate) fn mut_ref(&mut self) -> &mut TlsStreamSync<TcpStreamSync> {
+                &mut self.stream
+            }
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        impl From<TlsStreamSync<TcpStreamSync>> for TlsStreamWrapperSync {
+            fn from(stream: TlsStreamSync<TcpStreamSync>) -> Self {
+                Self {
+                    stream,
+                    ssl_shutdown: true,
+                }
+            }
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        impl Drop for TlsStreamWrapperSync {
+            fn drop(&mut self) {
+                if self.ssl_shutdown {
+                    if let Err(err) = self.stream.shutdown() {
+                        {
+                            let lvl = ::log::Level::Error;
+                            if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
+                                ::log::__private_api_log(
+                                    ::core::fmt::Arguments::new_v1(
+                                        &["Failed to shutdown stream: "],
+                                        &[::core::fmt::ArgumentV1::new_display(&err)],
+                                    ),
+                                    lvl,
+                                    &(
+                                        "suppaftp::ftp::data_stream",
+                                        "suppaftp::ftp::data_stream",
+                                        "src\\ftp\\data_stream.rs",
+                                        156u32,
+                                    ),
+                                    ::log::__private_api::Option::None,
+                                );
+                            }
+                        };
+                    } else {
+                        {
+                            let lvl = ::log::Level::Debug;
+                            if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
+                                ::log::__private_api_log(
+                                    ::core::fmt::Arguments::new_v1(&["TLS Stream shut down"], &[]),
+                                    lvl,
+                                    &(
+                                        "suppaftp::ftp::data_stream",
+                                        "suppaftp::ftp::data_stream",
+                                        "src\\ftp\\data_stream.rs",
+                                        158u32,
+                                    ),
+                                    ::log::__private_api::Option::None,
+                                );
+                            }
+                        };
+                    }
+                }
+            }
+        }
         impl ReadAsync for DataStreamAsync {
             fn poll_read(
                 self: Pin<&mut Self>,
@@ -273,7 +440,6 @@ mod ftp {
                 }
             }
         }
-        # [async_trait :: async_trait (? Send)]
         impl WriteAsync for DataStreamAsync {
             fn poll_write(
                 self: Pin<&mut Self>,
@@ -311,12 +477,14 @@ mod ftp {
     use super::types::{FileType, FtpError, FtpResult, Mode, Response};
     use super::Status;
     use crate::command::Command;
-    #[cfg(feature = "async-secure")]
+    #[cfg(any(feature = "secure", feature = "async-secure"))]
     use crate::command::ProtectionLevel;
-    use data_stream::DataStream;
+    use data_stream::DataStreamSync;
+    #[cfg(any(feature = "async", feature = "async-secure"))]
+    use data_stream::DataStreamAsync;
     use super::utils::*;
     #[cfg(feature = "async-secure")]
-    use async_native_tls::TlsConnector;
+    use async_native_tls::TlsConnector as TlsConnectorAsync;
     #[cfg(any(feature = "async", feature = "async-secure"))]
     use async_std::{
         io::{
@@ -329,9 +497,11 @@ mod ftp {
         },
         prelude::*,
     };
+    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    use native_tls::TlsConnector as TlsConnectorSync;
     use std::{
         io::{
-            copy as copy_sync, BufRead, BufReader as BufReaderSync, Cursor, Read as ReadSync,
+            copy as copy_sync, BufRead, BufReader as BufReaderSync, Read as ReadSync,
             Write as WriteSync,
         },
         net::{
@@ -344,21 +514,52 @@ mod ftp {
     use std::str::FromStr;
     use std::string::String;
     /// Some data for TLS mode
-    pub struct TlsCtx {
-        pub tls_connector: TlsConnector,
+    pub struct TlsCtxSync {
+        pub tls_connector: TlsConnectorSync,
         pub domain: String,
     }
     #[automatically_derived]
     #[allow(unused_qualifications)]
-    impl ::core::fmt::Debug for TlsCtx {
+    impl ::core::fmt::Debug for TlsCtxSync {
         fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
             match *self {
-                TlsCtx {
+                TlsCtxSync {
                     tls_connector: ref __self_0_0,
                     domain: ref __self_0_1,
                 } => {
                     let debug_trait_builder =
-                        &mut ::core::fmt::Formatter::debug_struct(f, "TlsCtx");
+                        &mut ::core::fmt::Formatter::debug_struct(f, "TlsCtxSync");
+                    let _ = ::core::fmt::DebugStruct::field(
+                        debug_trait_builder,
+                        "tls_connector",
+                        &&(*__self_0_0),
+                    );
+                    let _ = ::core::fmt::DebugStruct::field(
+                        debug_trait_builder,
+                        "domain",
+                        &&(*__self_0_1),
+                    );
+                    ::core::fmt::DebugStruct::finish(debug_trait_builder)
+                }
+            }
+        }
+    }
+    /// Some data for TLS mode
+    pub struct TlsCtxAsync {
+        pub tls_connector: TlsConnectorAsync,
+        pub domain: String,
+    }
+    #[automatically_derived]
+    #[allow(unused_qualifications)]
+    impl ::core::fmt::Debug for TlsCtxAsync {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            match *self {
+                TlsCtxAsync {
+                    tls_connector: ref __self_0_0,
+                    domain: ref __self_0_1,
+                } => {
+                    let debug_trait_builder =
+                        &mut ::core::fmt::Formatter::debug_struct(f, "TlsCtxAsync");
                     let _ = ::core::fmt::DebugStruct::field(
                         debug_trait_builder,
                         "tls_connector",
@@ -381,8 +582,8 @@ mod ftp {
         skip450: bool,
         #[cfg(not(feature = "support-ftpclient"))]
         welcome_msg: Option<String>,
-        #[cfg(feature = "async-secure")]
-        tls_ctx: Option<TlsCtx>,
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        tls_ctx: Option<TlsCtxSync>,
     }
     #[automatically_derived]
     #[allow(unused_qualifications)]
@@ -435,8 +636,8 @@ mod ftp {
         skip450: bool,
         #[cfg(not(feature = "support-ftpclient"))]
         welcome_msg: Option<String>,
-        #[cfg(feature = "async-secure")]
-        tls_ctx: Option<TlsCtx>,
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        tls_ctx: Option<TlsCtxAsync>,
     }
     #[automatically_derived]
     #[allow(unused_qualifications)]
@@ -491,7 +692,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Connecting to server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 72u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 64u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -506,13 +707,13 @@ mod ftp {
                             &[],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 75u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 67u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
             let mut ftp_stream = Self {
-                reader: BufReaderSync::new(DataStream::Tcp(stream)),
+                reader: BufReaderSync::new(DataStreamSync::Tcp(stream)),
                 mode: Mode::Passive,
                 skip450: false,
                 #[cfg(not(feature = "support-ftpclient"))]
@@ -526,7 +727,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Reading server response..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 87u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 79u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -541,7 +742,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&response.body)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 90u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 82u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -568,7 +769,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&mode)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 107u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 99u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -598,14 +799,18 @@ mod ftp {
         /// # });
         /// ```
         #[cfg(feature = "async-secure")]
-        pub fn into_secure(mut self, tls_connector: TlsConnector, domain: &str) -> FtpResult<Self> {
+        pub fn into_secure(
+            mut self,
+            tls_connector: TlsConnectorSync,
+            domain: &str,
+        ) -> FtpResult<Self> {
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Initializing TLS auth"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 140u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 132u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -617,31 +822,29 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS OK; initializing TLS stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 142u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 134u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
-            let stream = tls_connector.connect(
-                domain,
-                self.reader.into_inner().into_tcp_stream().to_owned(),
-            )?;
+            let stream =
+                tls_connector.connect(domain, self.reader.into_inner().into_tcp_stream())?;
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS stream OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 148u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 140u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
             let mut secured_ftp_stream = Self {
-                reader: BufReaderSync::new(DataStream::Ssl(stream.into())),
+                reader: BufReaderSync::new(DataStreamSync::Ssl(stream.into())),
                 mode: self.mode,
                 skip450: false,
-                tls_ctx: Some(TlsCtx {
+                tls_ctx: Some(TlsCtxSync {
                     tls_connector,
                     domain: domain.into(),
                 }),
@@ -675,7 +878,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&user.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 180u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 172u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -691,7 +894,7 @@ mod ftp {
                         ::log::__private_api_log(
                             ::core::fmt::Arguments::new_v1(&["Password is required"], &[]),
                             lvl,
-                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 184u32),
+                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 176u32),
                             ::log::__private_api::Option::None,
                         );
                     }
@@ -704,7 +907,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Login OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 188u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 180u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -722,7 +925,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["performing clear command channel"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 198u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 190u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -734,13 +937,14 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["CCC OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 200u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 192u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
-            self.reader =
-                BufReaderSync::new(DataStream::Tcp(self.reader.into_inner().into_tcp_stream()));
+            self.reader = BufReaderSync::new(DataStreamSync::Tcp(
+                self.reader.into_inner().into_tcp_stream(),
+            ));
             Ok(self)
         }
         /// Change the current directory to the path specified.
@@ -754,7 +958,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&path.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 207u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 199u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -770,7 +974,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Going to parent directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 214u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 206u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -789,7 +993,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Getting working directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 221u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 213u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -809,7 +1013,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Pinging server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 233u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 225u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -828,7 +1032,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 240u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 232u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -848,7 +1052,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_type.to_string())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 248u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 240u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -864,7 +1068,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Quitting stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 255u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 247u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -886,7 +1090,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 262u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 254u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -919,7 +1123,7 @@ mod ftp {
         /// The reader returned should be dropped.
         /// Also you will have to read the response to make sure it has the correct value.
         /// Once file has been read, call `finalize_retr_stream()`
-        pub fn retr_as_stream<S: AsRef<str>>(&mut self, file_name: S) -> FtpResult<DataStream> {
+        pub fn retr_as_stream<S: AsRef<str>>(&mut self, file_name: S) -> FtpResult<DataStreamSync> {
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
@@ -929,7 +1133,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_name.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 301u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 293u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -946,7 +1150,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing retr stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 309u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 301u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -958,7 +1162,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 312u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 304u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -977,7 +1181,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 320u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 312u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -996,7 +1200,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 327u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 319u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1024,7 +1228,7 @@ mod ftp {
         /// The returned stream must be then correctly manipulated to write the content of the source file to the remote destination
         /// The stream must be then correctly dropped.
         /// Once you've finished the write, YOU MUST CALL THIS METHOD: `finalize_put_stream`
-        pub fn put_with_stream<S: AsRef<str>>(&mut self, filename: S) -> FtpResult<DataStream> {
+        pub fn put_with_stream<S: AsRef<str>>(&mut self, filename: S) -> FtpResult<DataStreamSync> {
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
@@ -1034,7 +1238,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 354u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 346u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1053,7 +1257,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing put stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 364u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 356u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1065,7 +1269,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Stream dropped"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 367u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 359u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1075,7 +1279,10 @@ mod ftp {
         }
         /// Open specified file for appending data. Returns the stream to append data to specified file.
         /// Once you've finished the write, YOU MUST CALL THIS METHOD: `finalize_put_stream`
-        pub fn append_with_stream<S: AsRef<str>>(&mut self, filename: S) -> FtpResult<DataStream> {
+        pub fn append_with_stream<S: AsRef<str>>(
+            &mut self,
+            filename: S,
+        ) -> FtpResult<DataStreamSync> {
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
@@ -1085,7 +1292,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 376u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 368u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1115,7 +1322,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Aborting active file transfer"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 401u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 393u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1128,7 +1335,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 405u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 397u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1142,7 +1349,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Transfer aborted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 412u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 404u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1165,7 +1372,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&offset)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 423u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 415u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1177,7 +1384,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Resume transfer accepted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 425u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 417u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1199,7 +1406,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 433u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 425u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1221,7 +1428,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 445u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 437u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1262,7 +1469,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 478u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 470u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1294,7 +1501,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Feat"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 502u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 494u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1316,7 +1523,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 509u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 501u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1336,7 +1543,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&lang_tag))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 516u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 508u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1355,7 +1562,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&cmd.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 523u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 515u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1374,7 +1581,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&path))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 530u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 522u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1396,7 +1603,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 537u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 529u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1410,7 +1617,7 @@ mod ftp {
         }
         /// Retrieve stream "message"
         fn get_lines_from_stream(
-            data_stream: &mut BufReaderSync<DataStream>,
+            data_stream: &mut BufReaderSync<DataStreamSync>,
         ) -> FtpResult<Vec<String>> {
             let mut lines: Vec<String> = Vec::new();
             loop {
@@ -1441,7 +1648,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&lines)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 572u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 564u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1465,7 +1672,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 587u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 579u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1487,7 +1694,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 603u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 595u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
@@ -1513,7 +1720,7 @@ mod ftp {
                                         &[::core::fmt::ArgumentV1::new_display(&line)],
                                     ),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 624u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 616u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -1574,7 +1781,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 672u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 664u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1593,7 +1800,7 @@ mod ftp {
             self.read_response_in(expected_code)
         }
         /// Execute command which send data back in a separate stream
-        fn data_command(&mut self, cmd: Command) -> FtpResult<DataStream> {
+        fn data_command(&mut self, cmd: Command) -> FtpResult<DataStreamSync> {
             let stream = match self.mode {
                 Mode::Passive => {
                     let addr = self.pasv()?;
@@ -1613,9 +1820,9 @@ mod ftp {
                     let tls_stream = tls_ctx
                         .tls_connector
                         .connect(tls_ctx.domain.as_str(), stream)?;
-                    Ok(DataStream::Ssl(tls_stream.into()))
+                    Ok(DataStreamSync::Ssl(tls_stream.into()))
                 }
-                None => Ok(DataStream::Tcp(stream)),
+                None => Ok(DataStreamSync::Tcp(stream)),
             }
         }
         /// Create a new tcp listener and send a PORT command for it
@@ -1626,7 +1833,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Starting local tcp listener..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 720u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 712u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1642,15 +1849,15 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 724u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 716u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
-            let tcp_stream = match self.reader.get_mut() {
-                DataStream::Tcp(stream) => stream,
+            let tcp_stream = match self.reader.get_ref() {
+                DataStreamSync::Tcp(stream) => stream,
                 #[cfg(feature = "async-secure")]
-                DataStream::Ssl(stream) => stream.get_mut(),
+                DataStreamSync::Ssl(stream) => stream.get_ref(),
             };
             let ip = tcp_stream.local_addr().unwrap().ip();
             let msb = addr.port() / 256;
@@ -1678,7 +1885,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 737u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 729u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1689,7 +1896,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Running PORT command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 739u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 731u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1705,7 +1912,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["PASV command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 747u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 739u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1748,7 +1955,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 768u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 760u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1767,7 +1974,7 @@ mod ftp {
                                 ::log::__private_api_log(
                                     ::core::fmt::Arguments::new_v1(&["ERR read_line: EOF"], &[]),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 781u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 773u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -1785,7 +1992,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_debug(&e)],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 786u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 778u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
@@ -1814,7 +2021,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Connecting to server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 72u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 64u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1829,13 +2036,13 @@ mod ftp {
                             &[],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 75u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 67u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
             let mut ftp_stream = Self {
-                reader: BufReaderAsync::new(DataStream::Tcp(stream)),
+                reader: BufReaderAsync::new(DataStreamAsync::Tcp(stream)),
                 mode: Mode::Passive,
                 skip450: false,
                 #[cfg(not(feature = "support-ftpclient"))]
@@ -1849,7 +2056,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Reading server response..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 87u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 79u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1864,7 +2071,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&response.body)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 90u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 82u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1891,7 +2098,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&mode)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 107u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 99u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1923,7 +2130,7 @@ mod ftp {
         #[cfg(feature = "async-secure")]
         pub async fn into_secure(
             mut self,
-            tls_connector: TlsConnector,
+            tls_connector: TlsConnectorAsync,
             domain: &str,
         ) -> FtpResult<Self> {
             {
@@ -1932,7 +2139,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Initializing TLS auth"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 140u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 132u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1944,16 +2151,13 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS OK; initializing TLS stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 142u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 134u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
             let stream = tls_connector
-                .connect(
-                    domain,
-                    self.reader.into_inner().into_tcp_stream().to_owned(),
-                )
+                .connect(domain, self.reader.into_inner().into_tcp_stream())
                 .await?;
             {
                 let lvl = ::log::Level::Debug;
@@ -1961,16 +2165,16 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS stream OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 148u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 140u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
             let mut secured_ftp_stream = Self {
-                reader: BufReaderAsync::new(DataStream::Ssl(stream.into())),
+                reader: BufReaderAsync::new(DataStreamAsync::Ssl(stream.into())),
                 mode: self.mode,
                 skip450: false,
-                tls_ctx: Some(TlsCtx {
+                tls_ctx: Some(TlsCtxAsync {
                     tls_connector,
                     domain: domain.into(),
                 }),
@@ -2008,7 +2212,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&user.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 180u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 172u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2026,7 +2230,7 @@ mod ftp {
                         ::log::__private_api_log(
                             ::core::fmt::Arguments::new_v1(&["Password is required"], &[]),
                             lvl,
-                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 184u32),
+                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 176u32),
                             ::log::__private_api::Option::None,
                         );
                     }
@@ -2040,7 +2244,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Login OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 188u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 180u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2058,7 +2262,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["performing clear command channel"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 198u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 190u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2071,13 +2275,14 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["CCC OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 200u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 192u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
-            self.reader =
-                BufReaderAsync::new(DataStream::Tcp(self.reader.into_inner().into_tcp_stream()));
+            self.reader = BufReaderAsync::new(DataStreamAsync::Tcp(
+                self.reader.into_inner().into_tcp_stream(),
+            ));
             Ok(self)
         }
         /// Change the current directory to the path specified.
@@ -2091,7 +2296,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&path.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 207u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 199u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2108,7 +2313,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Going to parent directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 214u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 206u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2128,7 +2333,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Getting working directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 221u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 213u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2148,7 +2353,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Pinging server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 233u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 225u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2167,7 +2372,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 240u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 232u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2188,7 +2393,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_type.to_string())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 248u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 240u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2205,7 +2410,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Quitting stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 255u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 247u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2227,7 +2432,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 262u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 254u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2265,7 +2470,7 @@ mod ftp {
         pub async fn retr_as_stream<S: AsRef<str>>(
             &mut self,
             file_name: S,
-        ) -> FtpResult<DataStream> {
+        ) -> FtpResult<DataStreamAsync> {
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
@@ -2275,7 +2480,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_name.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 301u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 293u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2293,7 +2498,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing retr stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 309u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 301u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2305,7 +2510,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 312u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 304u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2325,7 +2530,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 320u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 312u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2345,7 +2550,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 327u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 319u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2377,7 +2582,7 @@ mod ftp {
         pub async fn put_with_stream<S: AsRef<str>>(
             &mut self,
             filename: S,
-        ) -> FtpResult<DataStream> {
+        ) -> FtpResult<DataStreamAsync> {
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
@@ -2387,7 +2592,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 354u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 346u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2407,7 +2612,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing put stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 364u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 356u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2419,7 +2624,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Stream dropped"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 367u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 359u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2433,7 +2638,7 @@ mod ftp {
         pub async fn append_with_stream<S: AsRef<str>>(
             &mut self,
             filename: S,
-        ) -> FtpResult<DataStream> {
+        ) -> FtpResult<DataStreamAsync> {
             {
                 let lvl = ::log::Level::Debug;
                 if lvl <= ::log::STATIC_MAX_LEVEL && lvl <= ::log::max_level() {
@@ -2443,7 +2648,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 376u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 368u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2476,7 +2681,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Aborting active file transfer"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 401u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 393u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2489,7 +2694,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 405u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 397u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2504,7 +2709,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Transfer aborted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 412u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 404u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2527,7 +2732,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&offset)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 423u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 415u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2540,7 +2745,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Resume transfer accepted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 425u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 417u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2562,7 +2767,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 433u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 425u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2584,7 +2789,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 445u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 437u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2627,7 +2832,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 478u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 470u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2661,7 +2866,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Feat"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 502u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 494u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2687,7 +2892,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 509u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 501u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2708,7 +2913,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&lang_tag))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 516u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 508u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2729,7 +2934,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&cmd.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 523u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 515u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2750,7 +2955,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&path))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 530u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 522u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2774,7 +2979,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 537u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 529u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2790,7 +2995,7 @@ mod ftp {
         }
         /// Retrieve stream "message"
         async fn get_lines_from_stream(
-            data_stream: &mut BufReaderAsync<DataStream>,
+            data_stream: &mut BufReaderAsync<DataStreamAsync>,
         ) -> FtpResult<Vec<String>> {
             let mut lines: Vec<String> = Vec::new();
             loop {
@@ -2821,7 +3026,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&lines)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 572u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 564u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2845,7 +3050,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 587u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 579u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2867,7 +3072,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 603u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 595u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
@@ -2893,7 +3098,7 @@ mod ftp {
                                         &[::core::fmt::ArgumentV1::new_display(&line)],
                                     ),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 624u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 616u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -2954,7 +3159,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 672u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 664u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2973,7 +3178,7 @@ mod ftp {
             self.read_response_in(expected_code).await
         }
         /// Execute command which send data back in a separate stream
-        async fn data_command(&mut self, cmd: Command) -> FtpResult<DataStream> {
+        async fn data_command(&mut self, cmd: Command) -> FtpResult<DataStreamAsync> {
             let stream = match self.mode {
                 Mode::Passive => {
                     let addr = self.pasv().await?;
@@ -2994,9 +3199,9 @@ mod ftp {
                         .tls_connector
                         .connect(tls_ctx.domain.as_str(), stream)
                         .await?;
-                    Ok(DataStream::Ssl(tls_stream.into()))
+                    Ok(DataStreamAsync::Ssl(tls_stream.into()))
                 }
-                None => Ok(DataStream::Tcp(stream)),
+                None => Ok(DataStreamAsync::Tcp(stream)),
             }
         }
         /// Create a new tcp listener and send a PORT command for it
@@ -3007,7 +3212,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Starting local tcp listener..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 720u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 712u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3023,15 +3228,15 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 724u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 716u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
-            let tcp_stream = match self.reader.get_mut() {
-                DataStream::Tcp(stream) => stream,
+            let tcp_stream = match self.reader.get_ref() {
+                DataStreamAsync::Tcp(stream) => stream,
                 #[cfg(feature = "async-secure")]
-                DataStream::Ssl(stream) => stream.get_mut(),
+                DataStreamAsync::Ssl(stream) => stream.get_ref(),
             };
             let ip = tcp_stream.local_addr().unwrap().ip();
             let msb = addr.port() / 256;
@@ -3059,7 +3264,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 737u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 729u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3070,7 +3275,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Running PORT command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 739u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 731u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3087,7 +3292,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["PASV command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 747u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 739u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3130,7 +3335,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 768u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 760u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3149,7 +3354,7 @@ mod ftp {
                                 ::log::__private_api_log(
                                     ::core::fmt::Arguments::new_v1(&["ERR read_line: EOF"], &[]),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 781u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 773u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -3167,7 +3372,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_debug(&e)],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 786u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 778u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
@@ -3186,6 +3391,1513 @@ mod ftp {
             let lines = Self::get_lines_from_stream(&mut data_stream).await;
             self.finalize_retr_stream(data_stream).await?;
             lines
+        }
+    }
+    #[cfg(test)]
+    mod test {
+        use super::*;
+        use crate::test::*;
+        use crate::types::FormatControl;
+        use pretty_assertions::assert_eq;
+        use rand::{distributions::Alphanumeric, thread_rng, Rng};
+        use serial_test::serial;
+        fn connect_sync() {
+            crate::log_init();
+            let stream: FtpStreamSync = setup_stream_sync();
+            finalize_stream_sync(stream);
+        }
+        async fn connect_async() {
+            crate::log_init();
+            let stream: FtpStreamAsync = setup_stream_async().await;
+            finalize_stream_async(stream).await;
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        fn connect_ssl_sync() {
+            let ftp_stream = FtpStreamSync::connect(TEST_SSL_SERVER_ADDR).unwrap();
+            let mut ftp_stream = ftp_stream
+                .into_secure(TlsConnectorSync::new(), TEST_SSL_SERVER_NAME)
+                .ok()
+                .unwrap();
+            if !ftp_stream.get_ref().await.set_ttl(255).is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: ftp_stream.get_ref().await.set_ttl(255).is_ok()",
+                )
+            };
+            if !ftp_stream
+                .login(TEST_SSL_SERVER_LOGIN, TEST_SSL_SERVER_PASSWORD)
+                .await
+                .is_ok()
+            {
+                :: core :: panicking :: panic ("assertion failed: ftp_stream.login(TEST_SSL_SERVER_LOGIN,\\n            TEST_SSL_SERVER_PASSWORD).await.is_ok()")
+            };
+            {
+                {
+                    match (&(ftp_stream.pwd().await.ok().unwrap().as_str()), &("/")) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !ftp_stream.quit().await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.quit().await.is_ok()")
+            };
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        async fn connect_ssl_async() {
+            let ftp_stream = FtpStreamAsync::connect(TEST_SSL_SERVER_ADDR).await.unwrap();
+            let mut ftp_stream = ftp_stream
+                .into_secure(TlsConnectorAsync::new(), TEST_SSL_SERVER_NAME)
+                .await
+                .ok()
+                .unwrap();
+            if !ftp_stream.get_ref().await.set_ttl(255).is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: ftp_stream.get_ref().await.set_ttl(255).is_ok()",
+                )
+            };
+            if !ftp_stream
+                .login(TEST_SSL_SERVER_LOGIN, TEST_SSL_SERVER_PASSWORD)
+                .await
+                .is_ok()
+            {
+                :: core :: panicking :: panic ("assertion failed: ftp_stream.login(TEST_SSL_SERVER_LOGIN,\\n            TEST_SSL_SERVER_PASSWORD).await.is_ok()")
+            };
+            {
+                {
+                    match (&(ftp_stream.pwd().await.ok().unwrap().as_str()), &("/")) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !ftp_stream.quit().await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.quit().await.is_ok()")
+            };
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        fn should_work_after_clear_command_channel_sync() {
+            crate::log_init();
+            let mut ftp_stream = FtpStreamSync::connect("test.rebex.net:21")
+                .unwrap()
+                .into_secure(TlsConnectorSync::new(), "test.rebex.net")
+                .ok()
+                .unwrap()
+                .clear_command_channel()
+                .ok()
+                .unwrap();
+            if !ftp_stream.login("demo", "password").await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: ftp_stream.login(\\\"demo\\\", \\\"password\\\").await.is_ok()")
+            };
+            if !ftp_stream.pwd().await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.pwd().await.is_ok()")
+            };
+            if !ftp_stream.list(None).await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.list(None).await.is_ok()")
+            };
+            if !ftp_stream.quit().await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.quit().await.is_ok()")
+            };
+        }
+        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        async fn should_work_after_clear_command_channel_async() {
+            crate::log_init();
+            let mut ftp_stream = FtpStreamAsync::connect("test.rebex.net:21")
+                .await
+                .unwrap()
+                .into_secure(TlsConnectorAsync::new(), "test.rebex.net")
+                .await
+                .ok()
+                .unwrap()
+                .clear_command_channel()
+                .await
+                .ok()
+                .unwrap();
+            if !ftp_stream.login("demo", "password").await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: ftp_stream.login(\\\"demo\\\", \\\"password\\\").await.is_ok()")
+            };
+            if !ftp_stream.pwd().await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.pwd().await.is_ok()")
+            };
+            if !ftp_stream.list(None).await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.list(None).await.is_ok()")
+            };
+            if !ftp_stream.quit().await.is_ok() {
+                ::core::panicking::panic("assertion failed: ftp_stream.quit().await.is_ok()")
+            };
+        }
+        fn should_change_mode_sync() {
+            crate::log_init();
+            let mut ftp_stream = FtpStreamSync::connect("test.rebex.net:21")
+                .map(|x| x.active_mode())
+                .unwrap();
+            {
+                {
+                    match (&(ftp_stream.mode), &(Mode::Active)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            ftp_stream.set_mode(Mode::Passive);
+            {
+                {
+                    match (&(ftp_stream.mode), &(Mode::Passive)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+        }
+        async fn should_change_mode_async() {
+            crate::log_init();
+            let mut ftp_stream = FtpStreamAsync::connect("test.rebex.net:21")
+                .await
+                .map(|x| x.active_mode())
+                .unwrap();
+            {
+                {
+                    match (&(ftp_stream.mode), &(Mode::Active)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            ftp_stream.set_mode(Mode::Passive);
+            {
+                {
+                    match (&(ftp_stream.mode), &(Mode::Passive)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+        }
+        fn welcome_message_sync() {
+            crate::log_init();
+            let stream: FtpStreamSync = setup_stream_sync();
+            {
+                {
+                    match (&(stream.get_welcome_msg().unwrap()), &(TEST_SERVER_WELCOME)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn welcome_message_async() {
+            crate::log_init();
+            let stream: FtpStreamAsync = setup_stream_async().await;
+            {
+                {
+                    match (&(stream.get_welcome_msg().unwrap()), &(TEST_SERVER_WELCOME)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn get_ref_sync() {
+            crate::log_init();
+            let stream: FtpStreamSync = setup_stream_sync();
+            if !stream.get_ref().await.set_ttl(255).is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.get_ref().await.set_ttl(255).is_ok()",
+                )
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn get_ref_async() {
+            crate::log_init();
+            let stream: FtpStreamAsync = setup_stream_async().await;
+            if !stream.get_ref().await.set_ttl(255).is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.get_ref().await.set_ttl(255).is_ok()",
+                )
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn change_wrkdir_sync() {
+            crate::log_init();
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            let wrkdir: String = stream.pwd().ok().unwrap();
+            if !stream.cwd("/").await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.cwd(\\\"/\\\").await.is_ok()")
+            };
+            {
+                {
+                    match (&(stream.pwd().await.ok().unwrap().as_str()), &("/")) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.cwd(wrkdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.cwd(wrkdir.as_str()).await.is_ok()",
+                )
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn change_wrkdir_async() {
+            crate::log_init();
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            let wrkdir: String = stream.pwd().await.ok().unwrap();
+            if !stream.cwd("/").await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.cwd(\\\"/\\\").await.is_ok()")
+            };
+            {
+                {
+                    match (&(stream.pwd().await.ok().unwrap().as_str()), &("/")) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.cwd(wrkdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.cwd(wrkdir.as_str()).await.is_ok()",
+                )
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn cd_up_sync() {
+            crate::log_init();
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            let wrkdir: String = stream.pwd().ok().unwrap();
+            if !stream.cdup().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.cdup().await.is_ok()")
+            };
+            {
+                {
+                    match (&(stream.pwd().await.ok().unwrap().as_str()), &("/")) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.cwd(wrkdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.cwd(wrkdir.as_str()).await.is_ok()",
+                )
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn cd_up_async() {
+            crate::log_init();
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            let wrkdir: String = stream.pwd().await.ok().unwrap();
+            if !stream.cdup().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.cdup().await.is_ok()")
+            };
+            {
+                {
+                    match (&(stream.pwd().await.ok().unwrap().as_str()), &("/")) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.cwd(wrkdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.cwd(wrkdir.as_str()).await.is_ok()",
+                )
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn noop_sync() {
+            crate::log_init();
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            if !stream.noop().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.noop().await.is_ok()")
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn noop_async() {
+            crate::log_init();
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            if !stream.noop().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.noop().await.is_ok()")
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn make_and_remove_dir_sync() {
+            crate::log_init();
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            if !stream.mkdir("omar").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.mkdir(\\\"omar\\\").await.is_ok()",
+                )
+            };
+            match stream.mkdir("omar").err().unwrap() {
+                FtpError::UnexpectedResponse(Response { status, body: _ }) => {
+                    {
+                        match (&(status), &(Status::FileUnavailable)) {
+                            (left_val, right_val) => {
+                                if !(*left_val == *right_val) {
+                                    use ::pretty_assertions::private::CreateComparison;
+                                    ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                        &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                        &match (
+                                            &"",
+                                            &::core::fmt::Arguments::new_v1(&[], &[]),
+                                            &(left_val, right_val).create_comparison(),
+                                        ) {
+                                            args => [
+                                                ::core::fmt::ArgumentV1::new_display(args.0),
+                                                ::core::fmt::ArgumentV1::new_display(args.1),
+                                                ::core::fmt::ArgumentV1::new_display(args.2),
+                                            ],
+                                        },
+                                    ))
+                                }
+                            }
+                        }
+                    };
+                }
+                err => ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                    &["Expected UnexpectedResponse, got "],
+                    &[::core::fmt::ArgumentV1::new_display(&err)],
+                )),
+            }
+            if !stream.rmdir("omar").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rmdir(\\\"omar\\\").await.is_ok()",
+                )
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn make_and_remove_dir_async() {
+            crate::log_init();
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            if !stream.mkdir("omar").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.mkdir(\\\"omar\\\").await.is_ok()",
+                )
+            };
+            match stream.mkdir("omar").await.err().unwrap() {
+                FtpError::UnexpectedResponse(Response { status, body: _ }) => {
+                    {
+                        match (&(status), &(Status::FileUnavailable)) {
+                            (left_val, right_val) => {
+                                if !(*left_val == *right_val) {
+                                    use ::pretty_assertions::private::CreateComparison;
+                                    ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                        &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                        &match (
+                                            &"",
+                                            &::core::fmt::Arguments::new_v1(&[], &[]),
+                                            &(left_val, right_val).create_comparison(),
+                                        ) {
+                                            args => [
+                                                ::core::fmt::ArgumentV1::new_display(args.0),
+                                                ::core::fmt::ArgumentV1::new_display(args.1),
+                                                ::core::fmt::ArgumentV1::new_display(args.2),
+                                            ],
+                                        },
+                                    ))
+                                }
+                            }
+                        }
+                    };
+                }
+                err => ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                    &["Expected UnexpectedResponse, got "],
+                    &[::core::fmt::ArgumentV1::new_display(&err)],
+                )),
+            }
+            if !stream.rmdir("omar").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rmdir(\\\"omar\\\").await.is_ok()",
+                )
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn set_transfer_type_sync() {
+            crate::log_init();
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            if !stream
+                .transfer_type(FileType::Ascii(FormatControl::Default))
+                .await
+                .is_ok()
+            {
+                :: core :: panicking :: panic ("assertion failed: stream.transfer_type(FileType::Ascii(FormatControl::Default)).await.is_ok()")
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn set_transfer_type_async() {
+            crate::log_init();
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            if !stream
+                .transfer_type(FileType::Ascii(FormatControl::Default))
+                .await
+                .is_ok()
+            {
+                :: core :: panicking :: panic ("assertion failed: stream.transfer_type(FileType::Ascii(FormatControl::Default)).await.is_ok()")
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn transfer_file_sync() {
+            crate::log_init();
+            use async_std::io::Cursor;
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            let file_data = "test data\n";
+            let mut reader = Cursor::new(file_data.as_bytes());
+            if !stream.put_file("test.txt", &mut reader).await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.put_file(\\\"test.txt\\\", &mut reader).await.is_ok()")
+            };
+            let mut reader = Cursor::new(file_data.as_bytes());
+            if !stream.append_file("test.txt", &mut reader).await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.append_file(\\\"test.txt\\\", &mut reader).await.is_ok()")
+            };
+            let mut reader = stream.retr_as_stream("test.txt").ok().unwrap();
+            let mut buffer = Vec::new();
+            if !reader.read_to_end(&mut buffer).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: reader.read_to_end(&mut buffer).await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(buffer.as_slice()), &("test data\ntest data\n".as_bytes())) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.finalize_retr_stream(reader).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.finalize_retr_stream(reader).await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(stream.size("test.txt").await.ok().unwrap()), &(20)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.size("omarone.txt").await.is_err() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.size(\\\"omarone.txt\\\").await.is_err()",
+                )
+            };
+            {
+                {
+                    match (&(stream.list(None).await.ok().unwrap().len()), &(1)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            {
+                {
+                    match (
+                        &(stream.nlst(None).await.ok().unwrap().as_slice()),
+                        &(&["test.txt"]),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.mdtm("test.txt").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.mdtm(\\\"test.txt\\\").await.is_ok()",
+                )
+            };
+            if !stream.rm("test.txt").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rm(\\\"test.txt\\\").await.is_ok()",
+                )
+            };
+            if !stream.mdtm("test.txt").await.is_err() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.mdtm(\\\"test.txt\\\").await.is_err()",
+                )
+            };
+            let file_data = "test data\n";
+            let mut reader = Cursor::new(file_data.as_bytes());
+            if !stream.put_file("test.txt", &mut reader).await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.put_file(\\\"test.txt\\\", &mut reader).await.is_ok()")
+            };
+            if !stream.rename("test.txt", "toast.txt").await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.rename(\\\"test.txt\\\", \\\"toast.txt\\\").await.is_ok()")
+            };
+            if !stream.rm("toast.txt").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rm(\\\"toast.txt\\\").await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(stream.list(None).await.ok().unwrap().len()), &(0)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn transfer_file_async() {
+            crate::log_init();
+            use async_std::io::Cursor;
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            let file_data = "test data\n";
+            let mut reader = Cursor::new(file_data.as_bytes());
+            if !stream.put_file("test.txt", &mut reader).await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.put_file(\\\"test.txt\\\", &mut reader).await.is_ok()")
+            };
+            let mut reader = Cursor::new(file_data.as_bytes());
+            if !stream.append_file("test.txt", &mut reader).await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.append_file(\\\"test.txt\\\", &mut reader).await.is_ok()")
+            };
+            let mut reader = stream.retr_as_stream("test.txt").await.ok().unwrap();
+            let mut buffer = Vec::new();
+            if !reader.read_to_end(&mut buffer).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: reader.read_to_end(&mut buffer).await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(buffer.as_slice()), &("test data\ntest data\n".as_bytes())) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.finalize_retr_stream(reader).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.finalize_retr_stream(reader).await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(stream.size("test.txt").await.ok().unwrap()), &(20)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.size("omarone.txt").await.is_err() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.size(\\\"omarone.txt\\\").await.is_err()",
+                )
+            };
+            {
+                {
+                    match (&(stream.list(None).await.ok().unwrap().len()), &(1)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            {
+                {
+                    match (
+                        &(stream.nlst(None).await.ok().unwrap().as_slice()),
+                        &(&["test.txt"]),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.mdtm("test.txt").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.mdtm(\\\"test.txt\\\").await.is_ok()",
+                )
+            };
+            if !stream.rm("test.txt").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rm(\\\"test.txt\\\").await.is_ok()",
+                )
+            };
+            if !stream.mdtm("test.txt").await.is_err() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.mdtm(\\\"test.txt\\\").await.is_err()",
+                )
+            };
+            let file_data = "test data\n";
+            let mut reader = Cursor::new(file_data.as_bytes());
+            if !stream.put_file("test.txt", &mut reader).await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.put_file(\\\"test.txt\\\", &mut reader).await.is_ok()")
+            };
+            if !stream.rename("test.txt", "toast.txt").await.is_ok() {
+                :: core :: panicking :: panic ("assertion failed: stream.rename(\\\"test.txt\\\", \\\"toast.txt\\\").await.is_ok()")
+            };
+            if !stream.rm("toast.txt").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rm(\\\"toast.txt\\\").await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(stream.list(None).await.ok().unwrap().len()), &(0)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn should_abort_transfer_sync() {
+            crate::log_init();
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            let _ = stream.rm("test.bin");
+            let mut transfer_stream = stream.put_with_stream("test.bin").ok().unwrap();
+            {
+                {
+                    match (
+                        &(transfer_stream
+                            .write(&[0x00, 0x01, 0x02, 0x03, 0x04])
+                            .await
+                            .ok()
+                            .unwrap()),
+                        &(5),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.abort(transfer_stream).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.abort(transfer_stream).await.is_ok()",
+                )
+            };
+            if !stream.pwd().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.pwd().await.is_ok()")
+            };
+            if !stream.list(None).await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.list(None).await.is_ok()")
+            };
+            let _ = stream.rm("test.bin");
+            finalize_stream_sync(stream);
+        }
+        async fn should_abort_transfer_async() {
+            crate::log_init();
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            let _ = stream.rm("test.bin").await;
+            let mut transfer_stream = stream.put_with_stream("test.bin").await.ok().unwrap();
+            {
+                {
+                    match (
+                        &(transfer_stream
+                            .write(&[0x00, 0x01, 0x02, 0x03, 0x04])
+                            .await
+                            .ok()
+                            .unwrap()),
+                        &(5),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.abort(transfer_stream).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.abort(transfer_stream).await.is_ok()",
+                )
+            };
+            if !stream.pwd().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.pwd().await.is_ok()")
+            };
+            if !stream.list(None).await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.list(None).await.is_ok()")
+            };
+            let _ = stream.rm("test.bin").await;
+            finalize_stream_async(stream).await;
+        }
+        fn should_resume_transfer_sync() {
+            crate::log_init();
+            let mut stream: FtpStreamSync = setup_stream_sync();
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            let wrkdir = stream.pwd().ok().unwrap();
+            let mut transfer_stream = stream.put_with_stream("test.bin").ok().unwrap();
+            {
+                {
+                    match (
+                        &(transfer_stream
+                            .write(&[0x00, 0x01, 0x02, 0x03, 0x04])
+                            .await
+                            .ok()
+                            .unwrap()),
+                        &(5),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            drop(stream);
+            drop(transfer_stream);
+            let mut stream = setup_stream_sync();
+            if !stream.login("test", "test").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.login(\\\"test\\\", \\\"test\\\").await.is_ok()",
+                )
+            };
+            if !stream.cwd(wrkdir).await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.cwd(wrkdir).await.is_ok()")
+            };
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            if !stream.resume_transfer(5).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.resume_transfer(5).await.is_ok()",
+                )
+            };
+            let mut transfer_stream = stream.put_with_stream("test.bin").ok().unwrap();
+            {
+                {
+                    match (
+                        &(transfer_stream
+                            .write(&[0x05, 0x06, 0x07, 0x08, 0x09, 0x0a])
+                            .await
+                            .ok()
+                            .unwrap()),
+                        &(6),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.finalize_put_stream(transfer_stream).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.finalize_put_stream(transfer_stream).await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(stream.size("test.bin").await.ok().unwrap()), &(11)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.rm("test.bin").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rm(\\\"test.bin\\\").await.is_ok()",
+                )
+            };
+            finalize_stream_sync(stream);
+        }
+        async fn should_resume_transfer_async() {
+            crate::log_init();
+            let mut stream: FtpStreamAsync = setup_stream_async().await;
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            let wrkdir = stream.pwd().await.ok().unwrap();
+            let mut transfer_stream = stream.put_with_stream("test.bin").await.ok().unwrap();
+            {
+                {
+                    match (
+                        &(transfer_stream
+                            .write(&[0x00, 0x01, 0x02, 0x03, 0x04])
+                            .await
+                            .ok()
+                            .unwrap()),
+                        &(5),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            drop(stream);
+            drop(transfer_stream);
+            let mut stream = setup_stream_async().await;
+            if !stream.login("test", "test").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.login(\\\"test\\\", \\\"test\\\").await.is_ok()",
+                )
+            };
+            if !stream.cwd(wrkdir).await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.cwd(wrkdir).await.is_ok()")
+            };
+            if !stream.transfer_type(FileType::Binary).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.transfer_type(FileType::Binary).await.is_ok()",
+                )
+            };
+            if !stream.resume_transfer(5).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.resume_transfer(5).await.is_ok()",
+                )
+            };
+            let mut transfer_stream = stream.put_with_stream("test.bin").await.ok().unwrap();
+            {
+                {
+                    match (
+                        &(transfer_stream
+                            .write(&[0x05, 0x06, 0x07, 0x08, 0x09, 0x0a])
+                            .await
+                            .ok()
+                            .unwrap()),
+                        &(6),
+                    ) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.finalize_put_stream(transfer_stream).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.finalize_put_stream(transfer_stream).await.is_ok()",
+                )
+            };
+            {
+                {
+                    match (&(stream.size("test.bin").await.ok().unwrap()), &(11)) {
+                        (left_val, right_val) => {
+                            if !(*left_val == *right_val) {
+                                use ::pretty_assertions::private::CreateComparison;
+                                ::core::panicking::panic_fmt(::core::fmt::Arguments::new_v1(
+                                    &["assertion failed: `(left == right)`", "", "\n\n", "\n"],
+                                    &match (
+                                        &"",
+                                        &::core::fmt::Arguments::new_v1(&[], &[]),
+                                        &(left_val, right_val).create_comparison(),
+                                    ) {
+                                        args => [
+                                            ::core::fmt::ArgumentV1::new_display(args.0),
+                                            ::core::fmt::ArgumentV1::new_display(args.1),
+                                            ::core::fmt::ArgumentV1::new_display(args.2),
+                                        ],
+                                    },
+                                ))
+                            }
+                        }
+                    }
+                };
+            };
+            if !stream.rm("test.bin").await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rm(\\\"test.bin\\\").await.is_ok()",
+                )
+            };
+            finalize_stream_async(stream).await;
+        }
+        fn setup_stream_sync() -> FtpStreamSync {
+            let mut ftp_stream = FtpStreamSync::connect(TEST_SERVER_ADDR).unwrap();
+            if !ftp_stream
+                .login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD)
+                .await
+                .is_ok()
+            {
+                :: core :: panicking :: panic ("assertion failed: ftp_stream.login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD).await.is_ok()")
+            };
+            let tempdir: String = generate_tempdir();
+            if !ftp_stream.mkdir(tempdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: ftp_stream.mkdir(tempdir.as_str()).await.is_ok()",
+                )
+            };
+            if !ftp_stream.cwd(tempdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: ftp_stream.cwd(tempdir.as_str()).await.is_ok()",
+                )
+            };
+            ftp_stream
+        }
+        async fn setup_stream_async() -> FtpStreamAsync {
+            let mut ftp_stream = FtpStreamAsync::connect(TEST_SERVER_ADDR).await.unwrap();
+            if !ftp_stream
+                .login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD)
+                .await
+                .is_ok()
+            {
+                :: core :: panicking :: panic ("assertion failed: ftp_stream.login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD).await.is_ok()")
+            };
+            let tempdir: String = generate_tempdir();
+            if !ftp_stream.mkdir(tempdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: ftp_stream.mkdir(tempdir.as_str()).await.is_ok()",
+                )
+            };
+            if !ftp_stream.cwd(tempdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: ftp_stream.cwd(tempdir.as_str()).await.is_ok()",
+                )
+            };
+            ftp_stream
+        }
+        fn finalize_stream_sync(mut stream: FtpStreamSync) {
+            crate::log_init();
+            let wrkdir: String = stream.pwd().ok().unwrap();
+            if !stream.rmdir(wrkdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rmdir(wrkdir.as_str()).await.is_ok()",
+                )
+            };
+            if !stream.quit().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.quit().await.is_ok()")
+            };
+        }
+        async fn finalize_stream_async(mut stream: FtpStreamAsync) {
+            crate::log_init();
+            let wrkdir: String = stream.pwd().await.ok().unwrap();
+            if !stream.rmdir(wrkdir.as_str()).await.is_ok() {
+                ::core::panicking::panic(
+                    "assertion failed: stream.rmdir(wrkdir.as_str()).await.is_ok()",
+                )
+            };
+            if !stream.quit().await.is_ok() {
+                ::core::panicking::panic("assertion failed: stream.quit().await.is_ok()")
+            };
+        }
+        fn generate_tempdir() -> String {
+            let mut rng = thread_rng();
+            let name: String = std::iter::repeat(())
+                .map(|()| rng.sample(Alphanumeric))
+                .map(char::from)
+                .take(5)
+                .collect();
+            {
+                let res = ::alloc::fmt::format(::core::fmt::Arguments::new_v1(
+                    &["temp_"],
+                    &[::core::fmt::ArgumentV1::new_display(&name)],
+                ));
+                res
+            }
         }
     }
 }

@@ -63,8 +63,8 @@ sync-secure = ["maybe-async/is_sync", "dep:native-tls"]
 # Disable logging
 no-log = ["log/max_level_off"]
 
-# Must be enabled whenever testing with docker containers
-with-containers = []
+# # Must be enabled whenever testing with docker containers
+# with-containers = []
 
 # Don't enable this feature; is used by suppaftp binary only
 cli-bin = ["env_logger", "rpassword"]
