@@ -9,6 +9,7 @@ use async_std::{
     io::{Read as ReadAsync, Result as ResultAsync, Write as WriteAsync},
     net::TcpStream as TcpStreamAsync
 };
+
 #[cfg(feature = "sync-secure")]
 use native_tls::TlsStream as TlsStreamSync;
 #[cfg(feature = "sync")]
@@ -16,30 +17,36 @@ use std::{
     io::{Read as ReadSync, Result as ResultSync, Write as WriteSync},
     net::TcpStream as TcpStreamSync
 };
-#[cfg(feature = "async")]
+
+//#[cfg(feature = "async")]
 use pin_project::pin_project;
-#[cfg(feature = "async")]
+//#[cfg(feature = "async")]
 use std::pin::Pin;
 
-/// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
-#[cfg(feature = "async")]
-#[pin_project(project = DataStreamProjAsync)]
-#[derive(Debug)]
-pub enum DataStreamAsync {
-    Tcp(#[pin] TcpStreamAsync),
-    #[cfg(feature = "async-secure")]
-    Ssl(#[pin] TlsStreamAsync<TcpStreamAsync>),
-}
 
 /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
-#[cfg(feature = "sync")]
-//#[pin_project(project = DataStreamProjSync)]
+//async(feature = "async", pin_project(project = DataStreamProjAsync)), 
+#[maybe_async::maybe(
+    sync(feature = "sync", drop_attrs = "pin"), 
+    async(feature = "async", pin_project(project = "DataStreamProjAsync")), 
+    idents = "TcpStream, TlsStreamWrapper"
+)]
 #[derive(Debug)]
-pub enum DataStreamSync {
-    Tcp(TcpStreamSync),
-    #[cfg(feature = "sync-secure")]
-    Ssl(TlsStreamWrapperSync),
+pub enum DataStream {
+    Tcp(#[pin] TcpStream),
+    #[cfg(feature = "_secure")]
+    Ssl(#[pin] TlsStreamWrapper),
 }
+
+// /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
+// #[cfg(feature = "sync")]
+// //#[pin_project(project = DataStreamProjSync)]
+// #[derive(Debug)]
+// pub enum DataStreamSync {
+//     Tcp(TcpStreamSync),
+//     #[cfg(feature = "sync-secure")]
+//     Ssl(TlsStreamWrapperSync),
+// }
 
 #[cfg(feature = "async")]
 impl DataStreamAsync {
@@ -119,7 +126,7 @@ pub struct TlsStreamWrapperSync {
     ssl_shutdown: bool,
 }
 
-#[cfg(any(feature = "secure", feature = "async-secure"))]
+#[cfg(feature = "_secure")]
 impl TlsStreamWrapperSync {
     /// Get underlying tcp stream
     pub(crate) fn tcp_stream(mut self) -> TcpStreamSync {

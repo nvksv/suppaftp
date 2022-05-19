@@ -8,226 +8,29 @@ mod ftp {
         //! This module exposes the async data stream implementation where bytes must be written to/read from
         #[cfg(feature = "async-secure")]
         use async_native_tls::TlsStream as TlsStreamAsync;
-        #[cfg(any(feature = "async", feature = "async-secure"))]
+        #[cfg(feature = "async")]
         use async_std::{
             io::{Read as ReadAsync, Result as ResultAsync, Write as WriteAsync},
             net::TcpStream as TcpStreamAsync,
         };
-        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        #[cfg(feature = "sync-secure")]
         use native_tls::TlsStream as TlsStreamSync;
+        #[cfg(feature = "sync")]
         use std::{
             io::{Read as ReadSync, Result as ResultSync, Write as WriteSync},
             net::TcpStream as TcpStreamSync,
         };
+        #[cfg(feature = "async")]
         use pin_project::pin_project;
+        #[cfg(feature = "async")]
         use std::pin::Pin;
-        /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
-        # [pin (__private (project = DataStreamProjAsync))]
-        pub enum DataStreamAsync {
-            Tcp(#[pin] TcpStreamAsync),
-            #[cfg(feature = "async-secure")]
-            Ssl(#[pin] TlsStreamAsync<TcpStreamAsync>),
-        }
-        #[allow(box_pointers)]
-        #[allow(deprecated)]
-        #[allow(explicit_outlives_requirements)]
-        #[allow(single_use_lifetimes)]
-        #[allow(unreachable_pub)]
-        #[allow(clippy::unknown_clippy_lints)]
-        #[allow(clippy::pattern_type_mismatch)]
-        #[allow(clippy::redundant_pub_crate)]
-        #[allow(clippy::type_repetition_in_bounds)]
-        #[allow(dead_code)]
-        #[allow(clippy::mut_mut)]
-        pub(crate) enum DataStreamProjAsync<'pin>
-        where
-            DataStreamAsync: 'pin,
-        {
-            Tcp(::pin_project::__private::Pin<&'pin mut (TcpStreamAsync)>),
-            Ssl(::pin_project::__private::Pin<&'pin mut (TlsStreamAsync<TcpStreamAsync>)>),
-        }
-        #[allow(box_pointers)]
-        #[allow(deprecated)]
-        #[allow(explicit_outlives_requirements)]
-        #[allow(single_use_lifetimes)]
-        #[allow(unreachable_pub)]
-        #[allow(clippy::unknown_clippy_lints)]
-        #[allow(clippy::pattern_type_mismatch)]
-        #[allow(clippy::redundant_pub_crate)]
-        #[allow(clippy::type_repetition_in_bounds)]
-        #[allow(unused_qualifications)]
-        #[allow(clippy::semicolon_if_nothing_returned)]
-        #[allow(clippy::use_self)]
-        #[allow(clippy::used_underscore_binding)]
-        const _: () = {
-            #[allow(unused_extern_crates)]
-            extern crate pin_project as _pin_project;
-            impl DataStreamAsync {
-                pub(crate) fn project<'pin>(
-                    self: _pin_project::__private::Pin<&'pin mut Self>,
-                ) -> DataStreamProjAsync<'pin> {
-                    unsafe {
-                        match self.get_unchecked_mut() {
-                            Self::Tcp(_0) => DataStreamProjAsync::Tcp(
-                                _pin_project::__private::Pin::new_unchecked(_0),
-                            ),
-                            Self::Ssl(_0) => DataStreamProjAsync::Ssl(
-                                _pin_project::__private::Pin::new_unchecked(_0),
-                            ),
-                        }
-                    }
-                }
-            }
-            #[allow(missing_debug_implementations)]
-            pub struct __DataStreamAsync<'pin> {
-                __pin_project_use_generics: _pin_project::__private::AlwaysUnpin<'pin, ()>,
-                __field0: TcpStreamAsync,
-                __field1: TlsStreamAsync<TcpStreamAsync>,
-            }
-            impl<'pin> _pin_project::__private::Unpin for DataStreamAsync where
-                __DataStreamAsync<'pin>: _pin_project::__private::Unpin
-            {
-            }
-            #[doc(hidden)]
-            unsafe impl<'pin> _pin_project::UnsafeUnpin for DataStreamAsync where
-                __DataStreamAsync<'pin>: _pin_project::__private::Unpin
-            {
-            }
-            trait DataStreamAsyncMustNotImplDrop {}
-            #[allow(clippy::drop_bounds, drop_bounds)]
-            impl<T: _pin_project::__private::Drop> DataStreamAsyncMustNotImplDrop for T {}
-            impl DataStreamAsyncMustNotImplDrop for DataStreamAsync {}
-            #[doc(hidden)]
-            impl _pin_project::__private::PinnedDrop for DataStreamAsync {
-                unsafe fn drop(self: _pin_project::__private::Pin<&mut Self>) {}
-            }
-        };
-        #[automatically_derived]
-        #[allow(unused_qualifications)]
-        impl ::core::fmt::Debug for DataStreamAsync {
-            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                match (&*self,) {
-                    (&DataStreamAsync::Tcp(ref __self_0),) => {
-                        let debug_trait_builder =
-                            &mut ::core::fmt::Formatter::debug_tuple(f, "Tcp");
-                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
-                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
-                    }
-                    (&DataStreamAsync::Ssl(ref __self_0),) => {
-                        let debug_trait_builder =
-                            &mut ::core::fmt::Formatter::debug_tuple(f, "Ssl");
-                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
-                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
-                    }
-                }
-            }
-        }
-        /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
-        # [pin (__private (project = DataStreamProjSync))]
-        pub enum DataStreamSync {
-            Tcp(#[pin] TcpStreamSync),
-            #[cfg(feature = "async-secure")]
-            Ssl(#[pin] TlsStreamWrapperSync),
-        }
-        #[allow(box_pointers)]
-        #[allow(deprecated)]
-        #[allow(explicit_outlives_requirements)]
-        #[allow(single_use_lifetimes)]
-        #[allow(unreachable_pub)]
-        #[allow(clippy::unknown_clippy_lints)]
-        #[allow(clippy::pattern_type_mismatch)]
-        #[allow(clippy::redundant_pub_crate)]
-        #[allow(clippy::type_repetition_in_bounds)]
-        #[allow(dead_code)]
-        #[allow(clippy::mut_mut)]
-        pub(crate) enum DataStreamProjSync<'pin>
-        where
-            DataStreamSync: 'pin,
-        {
-            Tcp(::pin_project::__private::Pin<&'pin mut (TcpStreamSync)>),
-            Ssl(::pin_project::__private::Pin<&'pin mut (TlsStreamWrapperSync)>),
-        }
-        #[allow(box_pointers)]
-        #[allow(deprecated)]
-        #[allow(explicit_outlives_requirements)]
-        #[allow(single_use_lifetimes)]
-        #[allow(unreachable_pub)]
-        #[allow(clippy::unknown_clippy_lints)]
-        #[allow(clippy::pattern_type_mismatch)]
-        #[allow(clippy::redundant_pub_crate)]
-        #[allow(clippy::type_repetition_in_bounds)]
-        #[allow(unused_qualifications)]
-        #[allow(clippy::semicolon_if_nothing_returned)]
-        #[allow(clippy::use_self)]
-        #[allow(clippy::used_underscore_binding)]
-        const _: () = {
-            #[allow(unused_extern_crates)]
-            extern crate pin_project as _pin_project;
-            impl DataStreamSync {
-                pub(crate) fn project<'pin>(
-                    self: _pin_project::__private::Pin<&'pin mut Self>,
-                ) -> DataStreamProjSync<'pin> {
-                    unsafe {
-                        match self.get_unchecked_mut() {
-                            Self::Tcp(_0) => DataStreamProjSync::Tcp(
-                                _pin_project::__private::Pin::new_unchecked(_0),
-                            ),
-                            Self::Ssl(_0) => DataStreamProjSync::Ssl(
-                                _pin_project::__private::Pin::new_unchecked(_0),
-                            ),
-                        }
-                    }
-                }
-            }
-            #[allow(missing_debug_implementations)]
-            pub struct __DataStreamSync<'pin> {
-                __pin_project_use_generics: _pin_project::__private::AlwaysUnpin<'pin, ()>,
-                __field0: TcpStreamSync,
-                __field1: TlsStreamWrapperSync,
-            }
-            impl<'pin> _pin_project::__private::Unpin for DataStreamSync where
-                __DataStreamSync<'pin>: _pin_project::__private::Unpin
-            {
-            }
-            #[doc(hidden)]
-            unsafe impl<'pin> _pin_project::UnsafeUnpin for DataStreamSync where
-                __DataStreamSync<'pin>: _pin_project::__private::Unpin
-            {
-            }
-            trait DataStreamSyncMustNotImplDrop {}
-            #[allow(clippy::drop_bounds, drop_bounds)]
-            impl<T: _pin_project::__private::Drop> DataStreamSyncMustNotImplDrop for T {}
-            impl DataStreamSyncMustNotImplDrop for DataStreamSync {}
-            #[doc(hidden)]
-            impl _pin_project::__private::PinnedDrop for DataStreamSync {
-                unsafe fn drop(self: _pin_project::__private::Pin<&mut Self>) {}
-            }
-        };
-        #[automatically_derived]
-        #[allow(unused_qualifications)]
-        impl ::core::fmt::Debug for DataStreamSync {
-            fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-                match (&*self,) {
-                    (&DataStreamSync::Tcp(ref __self_0),) => {
-                        let debug_trait_builder =
-                            &mut ::core::fmt::Formatter::debug_tuple(f, "Tcp");
-                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
-                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
-                    }
-                    (&DataStreamSync::Ssl(ref __self_0),) => {
-                        let debug_trait_builder =
-                            &mut ::core::fmt::Formatter::debug_tuple(f, "Ssl");
-                        let _ = ::core::fmt::DebugTuple::field(debug_trait_builder, &&(*__self_0));
-                        ::core::fmt::DebugTuple::finish(debug_trait_builder)
-                    }
-                }
-            }
-        }
+        #[cfg(feature = "async")]
         impl DataStreamAsync {
             /// Unwrap the stream into TcpStream. This method is only used in secure connection.
             pub fn into_tcp_stream(self) -> TcpStreamAsync {
                 match self {
                     DataStreamAsync::Tcp(stream) => stream,
+                    #[cfg(feature = "async-secure")]
                     DataStreamAsync::Ssl(stream) => stream.get_ref().clone(),
                 }
             }
@@ -273,20 +76,20 @@ mod ftp {
                 }
             }
         }
-        #[cfg(feature = "async")]
-        impl WriteAsync for DataStreamAsync {
-            fn write(&mut self, buf: &[u8]) -> ResultAsync<usize> {
+        #[cfg(feature = "sync")]
+        impl WriteSync for DataStreamSync {
+            fn write(&mut self, buf: &[u8]) -> ResultSync<usize> {
                 match self {
-                    DataStreamAsync::Tcp(ref mut stream) => stream.write(buf),
+                    DataStreamSync::Tcp(ref mut stream) => stream.write(buf),
                     #[cfg(any(feature = "secure", feature = "async-secure"))]
-                    DataStreamAsync::Ssl(ref mut stream) => stream.mut_ref().write(buf),
+                    DataStreamSync::Ssl(ref mut stream) => stream.mut_ref().write(buf),
                 }
             }
-            fn flush(&mut self) -> ResultAsync<()> {
+            fn flush(&mut self) -> ResultSync<()> {
                 match self {
-                    DataStreamAsync::Tcp(ref mut stream) => stream.flush(),
+                    DataStreamSync::Tcp(ref mut stream) => stream.flush(),
                     #[cfg(any(feature = "secure", feature = "async-secure"))]
-                    DataStreamAsync::Ssl(ref mut stream) => stream.mut_ref().flush(),
+                    DataStreamSync::Ssl(ref mut stream) => stream.mut_ref().flush(),
                 }
             }
         }
@@ -343,7 +146,7 @@ mod ftp {
                                     "suppaftp::ftp::data_stream",
                                     "suppaftp::ftp::data_stream",
                                     "src\\ftp\\data_stream.rs",
-                                    124u32,
+                                    136u32,
                                 ),
                                 ::log::__private_api::Option::None,
                             );
@@ -360,7 +163,7 @@ mod ftp {
                                 "suppaftp::ftp::data_stream",
                                 "suppaftp::ftp::data_stream",
                                 "src\\ftp\\data_stream.rs",
-                                126u32,
+                                138u32,
                             ),
                             ::log::__private_api::Option::None,
                         );
@@ -404,7 +207,7 @@ mod ftp {
                                         "suppaftp::ftp::data_stream",
                                         "suppaftp::ftp::data_stream",
                                         "src\\ftp\\data_stream.rs",
-                                        156u32,
+                                        168u32,
                                     ),
                                     ::log::__private_api::Option::None,
                                 );
@@ -421,7 +224,7 @@ mod ftp {
                                         "suppaftp::ftp::data_stream",
                                         "suppaftp::ftp::data_stream",
                                         "src\\ftp\\data_stream.rs",
-                                        158u32,
+                                        170u32,
                                     ),
                                     ::log::__private_api::Option::None,
                                 );
@@ -431,6 +234,7 @@ mod ftp {
                 }
             }
         }
+        #[cfg(feature = "async")]
         impl ReadAsync for DataStreamAsync {
             fn poll_read(
                 self: Pin<&mut Self>,
@@ -444,6 +248,7 @@ mod ftp {
                 }
             }
         }
+        #[cfg(feature = "async")]
         impl WriteAsync for DataStreamAsync {
             fn poll_write(
                 self: Pin<&mut Self>,
@@ -481,19 +286,19 @@ mod ftp {
     use super::types::{FileType, FtpError, FtpResult, Mode, Response};
     use super::Status;
     use crate::command::Command;
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "_secure")]
     use crate::command::ProtectionLevel;
+    #[cfg(feature = "sync")]
     use data_stream::DataStreamSync;
-    #[cfg(any(feature = "async", feature = "async-secure"))]
+    #[cfg(feature = "async")]
     use data_stream::DataStreamAsync;
     use super::utils::*;
     #[cfg(feature = "async-secure")]
     use async_native_tls::TlsConnector as TlsConnectorAsync;
-    #[cfg(any(feature = "async", feature = "async-secure"))]
+    #[cfg(feature = "async")]
     use async_std::{
         io::{
-            copy as copy_async, BufReader as BufReaderAsync, Read as ReadAsync,
-            Write as WriteAsync, Cursor as CursorAsync,
+            copy as copy_async, BufReader as BufReaderAsync, Read as ReadAsync, Write as WriteAsync,
         },
         net::ToSocketAddrs as ToSocketAddrsAsync,
         net::{
@@ -502,12 +307,13 @@ mod ftp {
         },
         prelude::*,
     };
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "sync-secure")]
     use native_tls::TlsConnector as TlsConnectorSync;
+    #[cfg(feature = "sync")]
     use std::{
         io::{
             copy as copy_sync, BufRead, BufReader as BufReaderSync, Read as ReadSync,
-            Write as WriteSync, Cursor as CursorSync,
+            Write as WriteSync,
         },
         net::{
             SocketAddr as SocketAddrSync, TcpListener as TcpListenerSync,
@@ -518,7 +324,7 @@ mod ftp {
     use chrono::{DateTime, Utc};
     use std::str::FromStr;
     use std::string::String;
-    #[cfg(feature = "sync")]
+    #[cfg(feature = "sync-secure")]
     /// Some data for TLS mode
     pub struct TlsCtxSync {
         pub tls_connector: TlsConnectorSync,
@@ -550,7 +356,7 @@ mod ftp {
             }
         }
     }
-    #[cfg(feature = "async")]
+    #[cfg(feature = "async-secure")]
     /// Some data for TLS mode
     pub struct TlsCtxAsync {
         pub tls_connector: TlsConnectorAsync,
@@ -588,9 +394,9 @@ mod ftp {
         reader: BufReaderSync<DataStreamSync>,
         mode: Mode,
         skip450: bool,
-        #[cfg(not(feature = "support-ftpclient"))]
+        #[cfg(feature = "_with-welcome-msg")]
         welcome_msg: Option<String>,
-        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        #[cfg(feature = "_secure")]
         tls_ctx: Option<TlsCtxSync>,
     }
     #[automatically_derived]
@@ -643,9 +449,9 @@ mod ftp {
         reader: BufReaderAsync<DataStreamAsync>,
         mode: Mode,
         skip450: bool,
-        #[cfg(not(feature = "support-ftpclient"))]
+        #[cfg(feature = "_with-welcome-msg")]
         welcome_msg: Option<String>,
-        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        #[cfg(feature = "_secure")]
         tls_ctx: Option<TlsCtxAsync>,
     }
     #[automatically_derived]
@@ -702,7 +508,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Connecting to server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 64u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 66u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -717,7 +523,7 @@ mod ftp {
                             &[],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 67u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 69u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -726,9 +532,9 @@ mod ftp {
                 reader: BufReaderSync::new(DataStreamSync::Tcp(stream)),
                 mode: Mode::Passive,
                 skip450: false,
-                #[cfg(not(feature = "support-ftpclient"))]
+                #[cfg(feature = "_with-welcome-msg")]
                 welcome_msg: None,
-                #[cfg(feature = "async-secure")]
+                #[cfg(feature = "_secure")]
                 tls_ctx: None,
             };
             {
@@ -737,7 +543,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Reading server response..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 79u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 81u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -752,12 +558,12 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&response.body)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 82u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 84u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
-            #[cfg(not(feature = "support-ftpclient"))]
+            #[cfg(feature = "_with-welcome-msg")]
             {
                 ftp_stream.welcome_msg = Some(response.body.into_string());
             }
@@ -779,7 +585,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&mode)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 99u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 101u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -808,7 +614,7 @@ mod ftp {
         /// let mut ftp_stream = ftp_stream.into_secure(ctx, "localhost").await.unwrap();
         /// # });
         /// ```
-        #[cfg(feature = "async-secure")]
+        #[cfg(feature = "_secure")]
         pub fn into_secure(
             mut self,
             tls_connector: TlsConnectorSync,
@@ -820,7 +626,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Initializing TLS auth"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 132u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 134u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -832,7 +638,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS OK; initializing TLS stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 134u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 136u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -845,7 +651,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS stream OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 140u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 142u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -858,7 +664,7 @@ mod ftp {
                     tls_connector,
                     domain: domain.into(),
                 }),
-                #[cfg(not(feature = "support-ftpclient"))]
+                #[cfg(feature = "_with-welcome-msg")]
                 welcome_msg: self.welcome_msg,
             };
             secured_ftp_stream.command(Command::Pbsz(0), &[Status::CommandOk])?;
@@ -869,7 +675,7 @@ mod ftp {
             Ok(secured_ftp_stream)
         }
         /// Returns welcome message retrieved from server (if available)
-        #[cfg(not(feature = "support-ftpclient"))]
+        #[cfg(feature = "_with-welcome-msg")]
         pub fn get_welcome_msg(&self) -> Option<&str> {
             self.welcome_msg.as_deref()
         }
@@ -888,7 +694,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&user.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 172u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 174u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -904,7 +710,7 @@ mod ftp {
                         ::log::__private_api_log(
                             ::core::fmt::Arguments::new_v1(&["Password is required"], &[]),
                             lvl,
-                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 176u32),
+                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 178u32),
                             ::log::__private_api::Option::None,
                         );
                     }
@@ -917,7 +723,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Login OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 180u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 182u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -927,7 +733,7 @@ mod ftp {
         /// Perform clear command channel (CCC).
         /// Once the command is performed, the command channel will be encrypted no more.
         /// The data stream will still be secure.
-        #[cfg(feature = "async-secure")]
+        #[cfg(feature = "_secure")]
         pub fn clear_command_channel(mut self) -> FtpResult<Self> {
             {
                 let lvl = ::log::Level::Debug;
@@ -935,7 +741,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["performing clear command channel"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 190u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 192u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -947,7 +753,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["CCC OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 192u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 194u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -968,7 +774,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&path.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 199u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 201u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -984,7 +790,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Going to parent directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 206u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 208u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1003,7 +809,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Getting working directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 213u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 215u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1023,7 +829,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Pinging server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 225u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 227u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1042,7 +848,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 232u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 234u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1062,7 +868,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_type.to_string())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 240u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 242u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1078,7 +884,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Quitting stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 247u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 249u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1100,7 +906,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 254u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 256u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1143,7 +949,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_name.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 293u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 295u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1160,7 +966,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing retr stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 301u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 303u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1172,7 +978,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 304u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 306u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1191,7 +997,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 312u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 314u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1210,7 +1016,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 319u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 321u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1248,7 +1054,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 346u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 348u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1267,7 +1073,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing put stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 356u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 358u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1279,7 +1085,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Stream dropped"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 359u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 361u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1302,7 +1108,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 368u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 370u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1332,7 +1138,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Aborting active file transfer"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 393u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 395u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1345,7 +1151,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 397u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 399u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1359,7 +1165,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Transfer aborted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 404u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 406u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1382,7 +1188,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&offset)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 415u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 417u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1394,7 +1200,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Resume transfer accepted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 417u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 419u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1416,7 +1222,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 425u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 427u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1438,7 +1244,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 437u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 439u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1479,7 +1285,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 470u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 472u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1511,7 +1317,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Feat"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 494u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 496u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1533,7 +1339,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 501u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 503u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1553,7 +1359,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&lang_tag))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 508u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 510u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1572,7 +1378,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&cmd.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 515u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 517u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1591,7 +1397,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&path))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 522u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 524u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1613,7 +1419,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 529u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 531u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1658,7 +1464,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&lines)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 564u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 566u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1682,7 +1488,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 579u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 581u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1704,7 +1510,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 595u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 597u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
@@ -1730,7 +1536,7 @@ mod ftp {
                                         &[::core::fmt::ArgumentV1::new_display(&line)],
                                     ),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 616u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 618u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -1791,7 +1597,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 664u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 666u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1824,15 +1630,17 @@ mod ftp {
                     stream
                 }
             };
-            #[cfg(feature = "async-secure")]
-            match self.tls_ctx {
-                Some(ref tls_ctx) => {
-                    let tls_stream = tls_ctx
-                        .tls_connector
-                        .connect(tls_ctx.domain.as_str(), stream)?;
-                    Ok(DataStreamSync::Ssl(tls_stream.into()))
+            #[cfg(feature = "_secure")]
+            {
+                match self.tls_ctx {
+                    Some(ref tls_ctx) => {
+                        let tls_stream = tls_ctx
+                            .tls_connector
+                            .connect(tls_ctx.domain.as_str(), stream)?;
+                        Ok(DataStreamSync::Ssl(tls_stream.into()))
+                    }
+                    None => Ok(DataStreamSync::Tcp(stream)),
                 }
-                None => Ok(DataStreamSync::Tcp(stream)),
             }
         }
         /// Create a new tcp listener and send a PORT command for it
@@ -1843,7 +1651,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Starting local tcp listener..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 712u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 717u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1859,14 +1667,14 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 716u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 721u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
             let tcp_stream = match self.reader.get_ref() {
                 DataStreamSync::Tcp(stream) => stream,
-                #[cfg(feature = "async-secure")]
+                #[cfg(feature = "_secure")]
                 DataStreamSync::Ssl(stream) => stream.get_ref(),
             };
             let ip = tcp_stream.local_addr().unwrap().ip();
@@ -1895,7 +1703,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 729u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 734u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1906,7 +1714,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Running PORT command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 731u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 736u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1922,7 +1730,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["PASV command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 739u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 744u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1965,7 +1773,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 760u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 765u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -1984,7 +1792,7 @@ mod ftp {
                                 ::log::__private_api_log(
                                     ::core::fmt::Arguments::new_v1(&["ERR read_line: EOF"], &[]),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 773u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 778u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -2002,7 +1810,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_debug(&e)],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 778u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 783u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
@@ -2032,7 +1840,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Connecting to server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 64u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 66u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2047,7 +1855,7 @@ mod ftp {
                             &[],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 67u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 69u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2056,9 +1864,9 @@ mod ftp {
                 reader: BufReaderAsync::new(DataStreamAsync::Tcp(stream)),
                 mode: Mode::Passive,
                 skip450: false,
-                #[cfg(not(feature = "support-ftpclient"))]
+                #[cfg(feature = "_with-welcome-msg")]
                 welcome_msg: None,
-                #[cfg(feature = "async-secure")]
+                #[cfg(feature = "_secure")]
                 tls_ctx: None,
             };
             {
@@ -2067,7 +1875,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Reading server response..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 79u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 81u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2082,12 +1890,12 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&response.body)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 82u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 84u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
-            #[cfg(not(feature = "support-ftpclient"))]
+            #[cfg(feature = "_with-welcome-msg")]
             {
                 ftp_stream.welcome_msg = Some(response.body.into_string());
             }
@@ -2109,7 +1917,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&mode)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 99u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 101u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2138,7 +1946,7 @@ mod ftp {
         /// let mut ftp_stream = ftp_stream.into_secure(ctx, "localhost").await.unwrap();
         /// # });
         /// ```
-        #[cfg(feature = "async-secure")]
+        #[cfg(feature = "_secure")]
         pub async fn into_secure(
             mut self,
             tls_connector: TlsConnectorAsync,
@@ -2150,7 +1958,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Initializing TLS auth"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 132u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 134u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2162,7 +1970,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS OK; initializing TLS stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 134u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 136u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2176,7 +1984,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["TLS stream OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 140u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 142u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2189,7 +1997,7 @@ mod ftp {
                     tls_connector,
                     domain: domain.into(),
                 }),
-                #[cfg(not(feature = "support-ftpclient"))]
+                #[cfg(feature = "_with-welcome-msg")]
                 welcome_msg: self.welcome_msg,
             };
             secured_ftp_stream
@@ -2204,7 +2012,7 @@ mod ftp {
             Ok(secured_ftp_stream)
         }
         /// Returns welcome message retrieved from server (if available)
-        #[cfg(not(feature = "support-ftpclient"))]
+        #[cfg(feature = "_with-welcome-msg")]
         pub fn get_welcome_msg(&self) -> Option<&str> {
             self.welcome_msg.as_deref()
         }
@@ -2223,7 +2031,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&user.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 172u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 174u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2241,7 +2049,7 @@ mod ftp {
                         ::log::__private_api_log(
                             ::core::fmt::Arguments::new_v1(&["Password is required"], &[]),
                             lvl,
-                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 176u32),
+                            &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 178u32),
                             ::log::__private_api::Option::None,
                         );
                     }
@@ -2255,7 +2063,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Login OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 180u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 182u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2265,7 +2073,7 @@ mod ftp {
         /// Perform clear command channel (CCC).
         /// Once the command is performed, the command channel will be encrypted no more.
         /// The data stream will still be secure.
-        #[cfg(feature = "async-secure")]
+        #[cfg(feature = "_secure")]
         pub async fn clear_command_channel(mut self) -> FtpResult<Self> {
             {
                 let lvl = ::log::Level::Debug;
@@ -2273,7 +2081,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["performing clear command channel"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 190u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 192u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2286,7 +2094,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["CCC OK"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 192u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 194u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2307,7 +2115,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&path.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 199u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 201u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2324,7 +2132,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Going to parent directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 206u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 208u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2344,7 +2152,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Getting working directory"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 213u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 215u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2364,7 +2172,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Pinging server"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 225u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 227u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2383,7 +2191,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 232u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 234u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2404,7 +2212,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_type.to_string())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 240u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 242u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2421,7 +2229,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Quitting stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 247u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 249u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2443,7 +2251,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 254u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 256u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2491,7 +2299,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&file_name.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 293u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 295u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2509,7 +2317,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing retr stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 301u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 303u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2521,7 +2329,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 304u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 306u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2541,7 +2349,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 312u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 314u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2561,7 +2369,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 319u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 321u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2603,7 +2411,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 346u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 348u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2623,7 +2431,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Finalizing put stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 356u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 358u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2635,7 +2443,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Stream dropped"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 359u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 361u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2659,7 +2467,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&filename.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 368u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 370u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2692,7 +2500,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Aborting active file transfer"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 393u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 395u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2705,7 +2513,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["dropped stream"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 397u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 399u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2720,7 +2528,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Transfer aborted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 404u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 406u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2743,7 +2551,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&offset)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 415u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 417u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2756,7 +2564,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Resume transfer accepted"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 417u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 419u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2778,7 +2586,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 425u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 427u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2800,7 +2608,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 437u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 439u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2843,7 +2651,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 470u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 472u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2877,7 +2685,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Feat"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 494u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 496u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2903,7 +2711,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 501u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 503u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2924,7 +2732,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&lang_tag))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 508u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 510u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2945,7 +2753,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&cmd.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 515u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 517u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2966,7 +2774,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&optstrref(&path))],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 522u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 524u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -2990,7 +2798,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&pathname.as_ref())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 529u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 531u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3037,7 +2845,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_debug(&lines)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 564u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 566u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3061,7 +2869,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 579u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 581u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3083,7 +2891,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_display(&line.trim_end())],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 595u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 597u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
@@ -3109,7 +2917,7 @@ mod ftp {
                                         &[::core::fmt::ArgumentV1::new_display(&line)],
                                     ),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 616u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 618u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -3170,7 +2978,7 @@ mod ftp {
                             )],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 664u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 666u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3203,16 +3011,18 @@ mod ftp {
                     stream
                 }
             };
-            #[cfg(feature = "async-secure")]
-            match self.tls_ctx {
-                Some(ref tls_ctx) => {
-                    let tls_stream = tls_ctx
-                        .tls_connector
-                        .connect(tls_ctx.domain.as_str(), stream)
-                        .await?;
-                    Ok(DataStreamAsync::Ssl(tls_stream.into()))
+            #[cfg(feature = "_secure")]
+            {
+                match self.tls_ctx {
+                    Some(ref tls_ctx) => {
+                        let tls_stream = tls_ctx
+                            .tls_connector
+                            .connect(tls_ctx.domain.as_str(), stream)
+                            .await?;
+                        Ok(DataStreamAsync::Ssl(tls_stream.into()))
+                    }
+                    None => Ok(DataStreamAsync::Tcp(stream)),
                 }
-                None => Ok(DataStreamAsync::Tcp(stream)),
             }
         }
         /// Create a new tcp listener and send a PORT command for it
@@ -3223,7 +3033,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Starting local tcp listener..."], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 712u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 717u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3239,14 +3049,14 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 716u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 721u32),
                         ::log::__private_api::Option::None,
                     );
                 }
             };
             let tcp_stream = match self.reader.get_ref() {
                 DataStreamAsync::Tcp(stream) => stream,
-                #[cfg(feature = "async-secure")]
+                #[cfg(feature = "_secure")]
                 DataStreamAsync::Ssl(stream) => stream.get_ref(),
             };
             let ip = tcp_stream.local_addr().unwrap().ip();
@@ -3275,7 +3085,7 @@ mod ftp {
                             ],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 729u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 734u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3286,7 +3096,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["Running PORT command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 731u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 736u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3303,7 +3113,7 @@ mod ftp {
                     ::log::__private_api_log(
                         ::core::fmt::Arguments::new_v1(&["PASV command"], &[]),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 739u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 744u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3346,7 +3156,7 @@ mod ftp {
                             &[::core::fmt::ArgumentV1::new_display(&addr)],
                         ),
                         lvl,
-                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 760u32),
+                        &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 765u32),
                         ::log::__private_api::Option::None,
                     );
                 }
@@ -3365,7 +3175,7 @@ mod ftp {
                                 ::log::__private_api_log(
                                     ::core::fmt::Arguments::new_v1(&["ERR read_line: EOF"], &[]),
                                     lvl,
-                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 773u32),
+                                    &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 778u32),
                                     ::log::__private_api::Option::None,
                                 );
                             }
@@ -3383,7 +3193,7 @@ mod ftp {
                                     &[::core::fmt::ArgumentV1::new_debug(&e)],
                                 ),
                                 lvl,
-                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 778u32),
+                                &("suppaftp::ftp", "suppaftp::ftp", "src\\ftp\\mod.rs", 783u32),
                                 ::log::__private_api::Option::None,
                             );
                         }
