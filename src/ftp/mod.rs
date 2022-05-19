@@ -102,7 +102,7 @@ impl FtpStream {
         self.mode = mode;
     }
 
-    /// Switch to a secure mode if possible, using a provided SSL configuration.
+    /// Switch to a secure mode if possible, using a provided TLS configuration.
     /// This method does nothing if the connect is already secured.
     ///
     /// ## Panics
@@ -142,7 +142,7 @@ impl FtpStream {
         debug!("TLS stream OK");
 
         let mut secured_ftp_stream = Self {
-            reader: BufReader::new(DataStream::Ssl(stream.into())),
+            reader: BufReader::new(DataStream::Tls(stream.into())),
             mode: self.mode,
             skip450: false,
             tls_ctx: Some(TlsCtx{ tls_connector, domain: domain.into() }),
@@ -697,7 +697,7 @@ impl FtpStream {
             match self.tls_ctx {
                 Some(ref tls_ctx) => {
                     let tls_stream = tls_ctx.tls_connector.connect(tls_ctx.domain.as_str(), stream).await?;
-                    Ok(DataStream::Ssl(tls_stream.into()))
+                    Ok(DataStream::Tls(tls_stream.into()))
                 },
                 None => {
                     Ok(DataStream::Tcp(stream))
@@ -724,7 +724,7 @@ impl FtpStream {
             DataStream::Tcp(stream) => stream,
 
             #[cfg(feature = "_secure")]
-            DataStream::Ssl(stream) => stream.get_ref(),
+            DataStream::Tls(stream) => stream.get_ref(),
         };
         let ip = tcp_stream.local_addr().unwrap().ip();
 
@@ -837,17 +837,17 @@ mod test {
 
     #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test), idents = "FtpStream, TlsConnector, fn tls_connector")]
     #[serial]
-    async fn connect_ssl() {
-        let ftp_stream = FtpStream::connect(TEST_SSL_SERVER_ADDR).await.unwrap();
+    async fn connect_tls() {
+        let ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR).await.unwrap();
         let mut ftp_stream = ftp_stream
-            .into_secure(tls_connector(), TEST_SSL_SERVER_NAME)
+            .into_secure(tls_connector(), TEST_TLS_SERVER_NAME)
             .await
             .ok()
             .unwrap();
-        // Set timeout (to test ref to ssl)
+        // Set timeout (to test ref to tls)
         assert!(ftp_stream.get_ref().await.set_ttl(255).is_ok());
         // Login
-        assert!(ftp_stream.login(TEST_SSL_SERVER_LOGIN, TEST_SSL_SERVER_PASSWORD).await.is_ok());
+        assert!(ftp_stream.login(TEST_TLS_SERVER_LOGIN, TEST_TLS_SERVER_PASSWORD).await.is_ok());
         // PWD
         assert_eq!(ftp_stream.pwd().await.ok().unwrap().as_str(), "/");
         // Quit
@@ -858,10 +858,10 @@ mod test {
     #[serial]
     async fn should_work_after_clear_command_channel() {
         crate::log_init();
-        let mut ftp_stream = FtpStream::connect("test.rebex.net:21")
+        let mut ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR)
             .await
             .unwrap()
-            .into_secure(tls_connector(), "test.rebex.net")
+            .into_secure(tls_connector(), TEST_TLS_SERVER_NAME)
             .await
             .ok()
             .unwrap()
@@ -870,7 +870,7 @@ mod test {
             .ok()
             .unwrap();
         // Login
-        assert!(ftp_stream.login("demo", "password").await.is_ok());
+        assert!(ftp_stream.login(TEST_TLS_SERVER_LOGIN, TEST_TLS_SERVER_PASSWORD).await.is_ok());
         // CCC
         assert!(ftp_stream.pwd().await.is_ok());
         assert!(ftp_stream.list(None).await.is_ok());
@@ -881,7 +881,7 @@ mod test {
     #[serial]
     async fn should_change_mode() {
         crate::log_init();
-        let mut ftp_stream = FtpStream::connect("test.rebex.net:21")
+        let mut ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR)
             .await
             .map(|x| x.active_mode())
             .unwrap();

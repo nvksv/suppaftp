@@ -170,8 +170,8 @@ pub mod test {
 
     pub const TEST_SERVER_WELCOME: &str = "ProFTPD Server (backup FTP Server) [::ffff:192.168.8.222]";
 
-    pub const TEST_SSL_SERVER_ADDR: &str = "test.rebex.net:21";
-    pub const TEST_SSL_SERVER_NAME: &str = "test.rebex.net";
-    pub const TEST_SSL_SERVER_LOGIN: &str = "demo";
-    pub const TEST_SSL_SERVER_PASSWORD: &str = "password";
+    pub const TEST_TLS_SERVER_ADDR: &str = "test.rebex.net:21";
+    pub const TEST_TLS_SERVER_NAME: &str = "test.rebex.net";
+    pub const TEST_TLS_SERVER_LOGIN: &str = "demo";
+    pub const TEST_TLS_SERVER_PASSWORD: &str = "password";
 }

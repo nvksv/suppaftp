@@ -7,7 +7,7 @@ use native_tls::TlsStream;
 use std::io::{Read, Result, Write};
 use std::net::TcpStream;
 
-/// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
+/// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Tls in case of FTPS
 #[derive(Debug)]
 pub enum DataStream {
     Tcp(TcpStream),
@@ -21,7 +21,7 @@ impl DataStream {
     pub fn into_tcp_stream(self) -> TcpStream {
         match self {
             DataStream::Tcp(stream) => stream,
-            DataStream::Ssl(stream) => stream.tcp_stream(),
+            DataStream::T(stream) => stream.tcp_stream(),
         }
     }
 }

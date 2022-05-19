@@ -82,7 +82,7 @@ impl FtpStream {
         self.mode = mode;
     }
 
-    /// Switch to a secure mode if possible, using a provided SSL configuration.
+    /// Switch to a secure mode if possible, using a provided TLS configuration.
     /// This method does nothing if the connect is already secured.
     ///
     /// ## Panics
@@ -116,7 +116,7 @@ impl FtpStream {
         debug!("TLS stream OK");
 
         let mut secured_ftp_stream = FtpStream {
-            reader: BufReader::new(DataStream::Ssl(stream.into())),
+            reader: BufReader::new(DataStream::Tls(stream.into())),
             mode: self.mode,
             tls_ctx: Some(TlsCtx{ tls_connector, domain: domain.into() }),
             #[cfg(not(feature = "support-ftpclient"))]
@@ -870,16 +870,16 @@ mod test {
     #[cfg(feature = "secure")]
     fn should_work_after_clear_command_channel() {
         crate::log_init();
-        let mut ftp_stream = FtpStream::connect("test.rebex.net:21")
+        let mut ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR)
             .unwrap()
-            .into_secure(TlsConnector::new().unwrap(), "test.rebex.net")
+            .into_secure(TlsConnector::new().unwrap(), TEST_TLS_SERVER_NAME)
             .ok()
             .unwrap()
             .clear_command_channel()
             .ok()
             .unwrap();
         // Login
-        assert!(ftp_stream.login("demo", "password").is_ok());
+        assert!(ftp_stream.login(TEST_TLS_SERVER_LOGIN, TEST_TLS_SERVER_PASSWORD).is_ok());
         // CCC
         assert!(ftp_stream.pwd().is_ok());
         assert!(ftp_stream.list(None).is_ok());
@@ -890,7 +890,7 @@ mod test {
     #[serial]
     fn should_change_mode() {
         crate::log_init();
-        let mut ftp_stream = FtpStream::connect("test.rebex.net:21")
+        let mut ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR)
             .map(|x| x.active_mode())
             .unwrap();
         assert_eq!(ftp_stream.mode, Mode::Active);
