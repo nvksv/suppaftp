@@ -48,17 +48,19 @@ serial_test = "^0.5.1"
 
 [features]
 # By default we use sync mode
-default = ["async-secure"]
+default = ["_with-welcome-msg", "sync", "async", "sync-secure", "async-secure"]
 
-secure = ["sync-secure"]
+# Basic features
+sync = []
+async = ["dep:async-std", "dep:pin-project"]
 
-# Enable async support for suppaftp
-async = ["maybe-async/is_sync", "maybe-async/is_async", "dep:async-std", "dep:pin-project"]
-async-secure = ["maybe-async/is_sync", "maybe-async/is_async", "dep:native-tls", "dep:async-std", "dep:async-native-tls", "dep:pin-project"]
+# Combined features for FTPS
+sync-secure = ["sync", "_secure", "dep:native-tls"]
+async-secure = ["async", "_secure", "dep:async-native-tls"]
 
-# Enable support of FTPS which requires native-tls (openssl is required on Linux)
-sync = ["maybe-async/is_sync"]
-sync-secure = ["maybe-async/is_sync", "dep:native-tls"]
+# Internal feature
+_secure = []
+_with-welcome-msg = []
 
 # Disable logging
 no-log = ["log/max_level_off"]
@@ -68,7 +70,6 @@ no-log = ["log/max_level_off"]
 
 # Don't enable this feature; is used by suppaftp binary only
 cli-bin = ["env_logger", "rpassword"]
-
 
 with-encodings = []
 

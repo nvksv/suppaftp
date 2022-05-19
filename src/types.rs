@@ -24,7 +24,7 @@ pub enum FtpError {
     ConnectionError(std::io::Error),
     
     /// There was an error with the secure stream
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "_secure")]
     #[error("Secure error: {0}")]
     SecureError(String),
     
@@ -67,7 +67,7 @@ impl FtpError {
                 }
             },
 
-            #[cfg(feature = "secure")]
+            #[cfg(feature = "_secure")]
             FtpError::SecureError(_) => { true },
 
             _ => { false },
@@ -87,7 +87,7 @@ impl From<std::net::AddrParseError> for FtpError {
     }
 }
 
-#[cfg(any(feature = "secure", feature = "async-secure"))]
+#[cfg(feature = "sync-secure")]
 impl<S: 'static> From<native_tls::HandshakeError<S>> for FtpError
 where
     S: std::io::Read + std::io::Write + std::fmt::Debug
@@ -366,7 +366,7 @@ mod test {
                 .as_str(),
             "Connection error: omar"
         );
-        #[cfg(feature = "secure")]
+        #[cfg(feature = "_secure")]
         assert_eq!(
             FtpError::SecureError("omar".to_string())
                 .to_string()

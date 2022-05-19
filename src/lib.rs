@@ -69,7 +69,7 @@
 //! ### FTPS Usage
 //!
 //! ```rust
-//! # #[cfg(any(feature = "secure", feature = "async-secure"))] {
+//! # #[cfg(feature = "sync-secure")] {
 //! use suppaftp::FtpStream;
 //! use native_tls::{TlsConnector, TlsStream};
 //!
@@ -92,7 +92,7 @@
 //! Let's quickly see in the example how it works
 //!
 //! ```rust
-//! # #[cfg(any(feature = "async", feature = "async-secure"))] {
+//! # #[cfg(feature = "async-secure")] {
 //! use suppaftp::FtpStream;
 //! use async_native_tls::{TlsConnector, TlsStream};
 //!
@@ -133,25 +133,24 @@ pub mod list;
 pub mod types;
 
 // -- secure deps
-#[cfg(feature = "secure")]
+#[cfg(feature = "sync-secure")]
 pub extern crate native_tls;
 // -- async deps
 #[cfg(feature = "async-secure")]
 pub extern crate async_native_tls;
 
-#[cfg(any(feature = "async", feature = "async-secure"))]
+#[cfg(feature = "async")]
 pub mod async_ftp {
     pub use crate::ftp::FtpStreamAsync as FtpStream;
 }
+#[cfg(feature = "sync")]
 pub mod sync_ftp {
     pub use crate::ftp::FtpStreamSync as FtpStream;
 }
 
-#[cfg(any(feature = "async", feature = "async-secure"))]
-pub use async_ftp::FtpStream;
-// -- export sync
-#[cfg(not(any(feature = "async", feature = "async-secure")))]
-pub use sync_ftp::FtpStream;
+#[cfg(feature = "sync")]
+pub use crate::sync_ftp::FtpStream;
+
 // -- export (common)
 pub use status::Status;
 pub use types::{FtpError, FtpResult, Mode};

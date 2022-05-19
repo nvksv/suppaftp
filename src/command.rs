@@ -14,10 +14,10 @@ pub enum Command {
     /// Append to file
     Appe(String),
     /// Set auth to TLS
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "_secure")]
     Auth,
     /// Ask server not to encrypt command channel
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "_secure")]
     ClearCommandChannel,
     /// Change directory to parent directory
     Cdup,
@@ -50,12 +50,12 @@ pub enum Command {
     /// Passive mode
     Pasv,
     /// Protection buffer size
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "_secure")]
     Pbsz(usize),
     /// Specifies an address and port to which the server should connect (active mode)
     Port(String),
     /// Set protection level for protocol
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "_secure")]
     Prot(ProtectionLevel),
     /// Print working directory
     Pwd,
@@ -130,7 +130,7 @@ impl Command {
     impl_command_new_str!(User, new_user);
 }
 
-#[cfg(any(feature = "secure", feature = "async-secure"))]
+#[cfg(feature = "_secure")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(unused)]
 /// Protection level; argument for `Prot` command
@@ -146,10 +146,10 @@ impl ToString for Command {
         let mut s = match self {
             Self::Abor => "ABOR".to_string(),
             Self::Appe(f) => format!("APPE {}", f),
-            #[cfg(any(feature = "secure", feature = "async-secure"))]
+            #[cfg(feature = "_secure")]
             Self::Auth => "AUTH TLS".to_string(),
             Self::Cdup => "CDUP".to_string(),
-            #[cfg(any(feature = "secure", feature = "async-secure"))]
+            #[cfg(feature = "_secure")]
             Self::ClearCommandChannel => "CCC".to_string(),
             Self::Cwd(d) => format!("CWD {}", d),
             Self::Dele(f) => format!("DELE {}", f),
@@ -183,10 +183,10 @@ impl ToString for Command {
             },
             Self::Pass(p) => format!("PASS {}", p),
             Self::Pasv => "PASV".to_string(),
-            #[cfg(any(feature = "secure", feature = "async-secure"))]
+            #[cfg(feature = "_secure")]
             Self::Pbsz(sz) => format!("PBSZ {}", sz),
             Self::Port(p) => format!("PORT {}", p),
-            #[cfg(any(feature = "secure", feature = "async-secure"))]
+            #[cfg(feature = "_secure")]
             Self::Prot(l) => format!("PROT {}", l.to_string()),
             Self::Pwd => "PWD".to_string(),
             Self::Quit => "QUIT".to_string(),
@@ -210,7 +210,7 @@ impl ToString for Command {
     }
 }
 
-#[cfg(any(feature = "secure", feature = "async-secure"))]
+#[cfg(feature = "_secure")]
 impl ToString for ProtectionLevel {
     fn to_string(&self) -> String {
         match self {
@@ -237,9 +237,9 @@ mod test {
                 .as_str(),
             "APPE foobar.txt\r\n"
         );
-        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        #[cfg(feature = "_secure")]
         assert_eq!(Command::Auth.to_string().as_str(), "AUTH TLS\r\n");
-        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        #[cfg(feature = "_secure")]
         assert_eq!(Command::ClearCommandChannel.to_string().as_str(), "CCC\r\n");
         assert_eq!(Command::Cdup.to_string().as_str(), "CDUP\r\n");
         assert_eq!(
@@ -280,7 +280,7 @@ mod test {
             "PASS qwerty123\r\n"
         );
         assert_eq!(Command::Pasv.to_string().as_str(), "PASV\r\n");
-        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        #[cfg(feature = "_secure")]
         assert_eq!(Command::Pbsz(0).to_string().as_str(), "PBSZ 0\r\n");
         assert_eq!(
             Command::Port(String::from("0.0.0.0:21"))
@@ -288,7 +288,7 @@ mod test {
                 .as_str(),
             "PORT 0.0.0.0:21\r\n"
         );
-        #[cfg(any(feature = "secure", feature = "async-secure"))]
+        #[cfg(feature = "_secure")]
         assert_eq!(
             Command::Prot(ProtectionLevel::Clear).to_string().as_str(),
             "PROT C\r\n"
@@ -334,7 +334,7 @@ mod test {
         );
     }
 
-    #[cfg(any(feature = "secure", feature = "async-secure"))]
+    #[cfg(feature = "_secure")]
     #[test]
     fn should_stringify_protection_level() {
         assert_eq!(ProtectionLevel::Clear.to_string().as_str(), "C");

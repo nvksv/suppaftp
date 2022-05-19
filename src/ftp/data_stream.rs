@@ -4,21 +4,25 @@
 
 #[cfg(feature = "async-secure")]
 use async_native_tls::TlsStream as TlsStreamAsync;
-#[cfg(any(feature = "async", feature = "async-secure"))]
+#[cfg(feature = "async")]
 use async_std::{
     io::{Read as ReadAsync, Result as ResultAsync, Write as WriteAsync},
     net::TcpStream as TcpStreamAsync
 };
-#[cfg(any(feature = "secure",feature = "async-secure"))]
+#[cfg(feature = "sync-secure")]
 use native_tls::TlsStream as TlsStreamSync;
+#[cfg(feature = "sync")]
 use std::{
     io::{Read as ReadSync, Result as ResultSync, Write as WriteSync},
     net::TcpStream as TcpStreamSync
 };
+#[cfg(feature = "async")]
 use pin_project::pin_project;
+#[cfg(feature = "async")]
 use std::pin::Pin;
 
 /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
+#[cfg(feature = "async")]
 #[pin_project(project = DataStreamProjAsync)]
 #[derive(Debug)]
 pub enum DataStreamAsync {
@@ -28,19 +32,22 @@ pub enum DataStreamAsync {
 }
 
 /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Ssl in case of FTPS
-#[pin_project(project = DataStreamProjSync)]
+#[cfg(feature = "sync")]
+//#[pin_project(project = DataStreamProjSync)]
 #[derive(Debug)]
 pub enum DataStreamSync {
-    Tcp(#[pin] TcpStreamSync),
-    #[cfg(feature = "async-secure")]
-    Ssl(#[pin] TlsStreamWrapperSync),
+    Tcp(TcpStreamSync),
+    #[cfg(feature = "sync-secure")]
+    Ssl(TlsStreamWrapperSync),
 }
 
+#[cfg(feature = "async")]
 impl DataStreamAsync {
     /// Unwrap the stream into TcpStream. This method is only used in secure connection.
     pub fn into_tcp_stream(self) -> TcpStreamAsync {
         match self {
             DataStreamAsync::Tcp(stream) => stream,
+            #[cfg(feature = "async-secure")]
             DataStreamAsync::Ssl(stream) => stream.get_ref().clone(),
         }
     }
@@ -56,7 +63,7 @@ impl DataStreamSync {
     }
 }
 
-#[maybe_async::both(idents = "DataStream, TcpStream, TlsStream")]
+#[maybe_async::maybe(sync(feature="sync"), async(feature="async"), idents = "DataStream, TcpStream, TlsStream")]
 impl DataStream {
     /// Returns a reference to the underlying TcpStream.
     pub fn get_ref(&self) -> &TcpStream {
@@ -71,7 +78,7 @@ impl DataStream {
 
 // -- sync
 
-#[maybe_async::sync_impl(idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result")]
+#[maybe_async::maybe(sync(feature="sync"), idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result")]
 impl Read for DataStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         match self {
@@ -82,7 +89,7 @@ impl Read for DataStream {
     }
 }
 
-#[maybe_async::sync_impl(idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result")]
+#[maybe_async::maybe(sync(feature="sync"), idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result")]
 impl Write for DataStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         match self {
@@ -165,7 +172,7 @@ impl Drop for TlsStreamWrapperSync {
 
 // -- async
 
-#[maybe_async::async_impl(idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result")]
+#[maybe_async::maybe(async(feature="async"), idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result")]
 impl Read for DataStream {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -180,7 +187,7 @@ impl Read for DataStream {
     }
 }
 
-#[maybe_async::async_impl(idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result")]
+#[maybe_async::maybe(async(feature="async"), idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result")]
 impl Write for DataStream {
     fn poll_write(
         self: Pin<&mut Self>,
