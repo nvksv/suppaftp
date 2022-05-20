@@ -6,6 +6,7 @@ mod data_stream;
 
 use super::types::{FileType, FtpError, FtpResult, Mode, Response};
 use super::Status;
+use crate::callbacks;
 use crate::command::Command;
 #[cfg(feature = "_secure")]
 use crate::command::ProtectionLevel;
@@ -14,6 +15,9 @@ use data_stream::DataStreamSync;
 #[cfg(feature = "async")]
 use data_stream::DataStreamAsync;
 use super::utils::*;
+
+#[cfg(feature = "support-ftpclient")]
+use crate::callbacks::{FtpStreamCallbacks, FtpStreamCallbacksRef};
 
 #[cfg(feature = "async-secure")]
 use async_native_tls::TlsConnector as TlsConnectorAsync;
@@ -47,22 +51,32 @@ pub struct TlsCtx {
 }
 
 /// Stream to interface with the FTP server. This interface is only for the command stream.
-#[maybe_async::maybe(sync(feature="sync"), async(feature="async"), idents = "BufReader, DataStream, TlsCtx")]
+#[maybe_async::maybe(
+    sync(feature="sync", replace_features(_secure = "sync-secure")), 
+    async(feature="async", replace_features(_secure = "async-secure")), 
+    idents = "BufReader, DataStream, TlsCtx"
+)]
 #[derive(Debug)]
 pub struct FtpStream {
     reader: BufReader<DataStream>,
     mode: Mode,
     skip450: bool,
-    #[cfg(feature = "_with-welcome-msg")]
-    welcome_msg: Option<String>,
     #[cfg(feature = "_secure")]
     tls_ctx: Option<TlsCtx>,
+    #[cfg(feature = "_with-welcome-msg")]
+    welcome_msg: Option<String>,
+    #[cfg(feature = "support-ftpclient")]
+    callbacks: FtpStreamCallbacksRef,
 }
 
-#[maybe_async::maybe(sync(feature="sync"), async(feature="async"), idents = "DataStream, TlsConnector, TlsCtx, BufReader, TcpStream, ToSocketAddrs, SocketAddr, TcpListener, Read, Write, fn copy")]
+#[maybe_async::maybe(
+    sync(feature="sync", replace_features(_secure = "sync-secure")), 
+    async(feature="async", replace_features(_secure = "async-secure")), 
+    idents = "DataStream, TlsConnector, TlsCtx, BufReader, TcpStream, ToSocketAddrs, SocketAddr, TcpListener, Read, Write, fn copy"
+)]
 impl FtpStream {
     /// Creates an FTP Stream.
-    pub async fn connect<A: ToSocketAddrs>(addr: A) -> FtpResult<Self> {
+    pub async fn connect<A: ToSocketAddrs>(addr: A, #[cfg(feature = "support-ftpclient")] callbacks: FtpStreamCallbacksRef) -> FtpResult<Self> {
         debug!("Connecting to server");
 
         let stream = TcpStream::connect(addr).await?;
@@ -72,19 +86,27 @@ impl FtpStream {
             reader: BufReader::new(DataStream::Tcp(stream)),
             mode: Mode::Passive,
             skip450: false,
-            #[cfg(feature = "_with-welcome-msg")]
-            welcome_msg: None,
             #[cfg(feature = "_secure")]
             tls_ctx: None,
+            #[cfg(feature = "_with-welcome-msg")]
+            welcome_msg: None,
+            #[cfg(feature = "support-ftpclient")]
+            callbacks,
         };
 
         debug!("Reading server response...");
+        #[allow(unused_variables)]
         let response = ftp_stream.read_response_in(&[Status::Ready]).await?;
-
         debug!("Server READY; response: {}", response.body);
+
         #[cfg(feature = "_with-welcome-msg")]
         {
             ftp_stream.welcome_msg = Some(response.body.into_string());
+        }
+
+        #[cfg(feature = "support-ftpclient")]
+        {
+            ftp_stream.callbacks.welcome_response(response);
         }
 
         Ok(ftp_stream)
@@ -266,6 +288,23 @@ impl FtpStream {
     /// The implementation of `RETR` command where `filename` is the name of the file
     /// to download from FTP and `reader` is the function which operates with the
     /// data stream opened.
+    ///
+    /// ```
+    /// # use suppaftp::{FtpStream, FtpError};
+    /// # use std::io::Cursor;
+    /// # let mut conn = FtpStream::connect("ftp.server.local:21").unwrap();
+    /// # conn.login("test", "test").and_then(|_| {
+    /// #     let mut reader = Cursor::new("hello, world!".as_bytes());
+    /// #     conn.put_file("retr.txt", &mut reader)
+    /// # }).unwrap();
+    /// assert!(conn.retr("retr.txt", |stream| {
+    ///     let mut buf = Vec::new();
+    ///     stream.read_to_end(&mut buf).map(|_|
+    ///         assert_eq!(buf, "hello, world!".as_bytes())
+    ///     ).map_err(|e| FtpError::ConnectionError(e))
+    /// }).is_ok());
+    /// # assert!(conn.rm("retr.txt").is_ok());
+    /// ```
     pub async fn retr<S, F, T>(&mut self, file_name: S, mut reader: F) -> FtpResult<T>
     where
         F: FnMut(&mut (dyn Read + std::marker::Unpin)) -> FtpResult<T>,
@@ -285,7 +324,22 @@ impl FtpStream {
     }
 
     // fn retr_as_buffer(...) requires async closures which are still unstable
-
+    //
+    /// Simple way to retr a file from the server. This stores the file in a buffer in memory.
+    ///
+    /// ```
+    /// # use suppaftp::{FtpStream, FtpError};
+    /// # use std::io::Cursor;
+    /// # let mut conn = FtpStream::connect("ftp.server.local:21").unwrap();
+    /// # conn.login("test", "test").and_then(|_| {
+    /// #     let mut reader = Cursor::new("hello, world!".as_bytes());
+    /// #     conn.put_file("simple_retr.txt", &mut reader)
+    /// # }).unwrap();
+    /// let cursor = conn.retr_as_buffer("simple_retr.txt").unwrap();
+    /// // do something with bytes
+    /// assert_eq!(cursor.into_inner(), "hello, world!".as_bytes());
+    /// # assert!(conn.rm("simple_retr.txt").is_ok());
+    /// ```
     /// Retrieves the file name specified from the server as a readable stream.
     /// This method is a more complicated way to retrieve a file.
     /// The reader returned should be dropped.
@@ -423,6 +477,20 @@ impl FtpStream {
     /// Execute `LIST` command which returns the detailed file listing in human readable format.
     /// If `pathname` is omited then the list of files in the current directory will be
     /// returned otherwise it will the list of files on `pathname`.
+    ///
+    /// ### Parse result
+    ///
+    /// You can parse the output of this command with
+    ///
+    /// ```rust
+    ///
+    /// use std::str::FromStr;
+    /// use suppaftp::list::File;
+    ///
+    /// let file: File = File::from_str("-rw-rw-r-- 1 0  1  8192 Nov 5 2018 omar.txt")
+    ///     .ok()
+    ///     .unwrap();
+    /// ```
     pub async fn list(&mut self, pathname: Option<&str>) -> FtpResult<Vec<String>> {
         debug!(
             "Reading {} directory content",
@@ -838,6 +906,7 @@ mod test {
     #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test), idents = "FtpStream, TlsConnector, fn tls_connector")]
     #[serial]
     async fn connect_tls() {
+        crate::log_init();
         let ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR).await.unwrap();
         let mut ftp_stream = ftp_stream
             .into_secure(tls_connector(), TEST_TLS_SERVER_NAME)
@@ -1000,6 +1069,14 @@ mod test {
         assert_eq!(buffer.as_slice(), "test data\ntest data\n".as_bytes());
         // Finalize
         assert!(stream.finalize_retr_stream(reader).await.is_ok());
+        // assert_eq!(
+        //     stream
+        //         .retr_as_buffer("test.txt")
+        //         .map(|bytes| bytes.into_inner())
+        //         .ok()
+        //         .unwrap(),
+        //     file_data.as_bytes()
+        // );        
         // Get size
         assert_eq!(stream.size("test.txt").await.ok().unwrap(), 20);
         // Size of non-existing file
@@ -1022,6 +1099,23 @@ mod test {
         assert!(stream.put_file("test.txt", &mut reader).await.is_ok());
         assert!(stream.rename("test.txt", "toast.txt").await.is_ok());
         assert!(stream.rm("toast.txt").await.is_ok());
+
+        // assert!(stream.put_file("test.txt", &mut reader).is_ok());
+        // // Append file
+        // let mut reader = Cursor::new(file_data.as_bytes());
+        // assert!(stream.append_file("test.txt", &mut reader).is_ok());
+        // // Read file
+        // let mut reader = stream.retr_as_stream("test.txt").ok().unwrap();
+        // let mut buffer = Vec::new();
+        // assert!(reader.read_to_end(&mut buffer).is_ok());
+        // // Finalize
+        // assert!(stream.finalize_retr_stream(Box::new(reader)).is_ok());
+        // // Verify file matches
+        // assert_eq!(buffer.as_slice(), "test data\ntest data\n".as_bytes());
+        // // Rename
+        // assert!(stream.rename("test.txt", "toast.txt").is_ok());
+        // assert!(stream.rm("toast.txt").is_ok());
+
         // List directory again
         assert_eq!(stream.list(None).await.ok().unwrap().len(), 0);
         finalize_stream(stream).await;
@@ -1081,7 +1175,7 @@ mod test {
         drop(transfer_stream);
         // Re-connect to server
         let mut stream = setup_stream().await;
-        assert!(stream.login("test", "test").await.is_ok());
+        assert!(stream.login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD).await.is_ok());
         // Go back to previous dir
         assert!(stream.cwd(wrkdir).await.is_ok());
         // Set transfer type to Binary

@@ -13,7 +13,7 @@ use actions::*;
 use command::Command;
 // -- locals
 
-use suppaftp::{FtpError, FtpStream};
+use suppaftp::{FtpError, sync_ftp::FtpStream};
 // -- ext
 use std::env;
 use std::io;

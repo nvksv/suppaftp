@@ -128,6 +128,9 @@ mod status;
 
 mod utils;
 
+#[cfg(feature = "support-ftpclient")]
+pub mod callbacks;
+
 // -- public
 pub mod list;
 pub mod types;
@@ -175,3 +178,6 @@ pub mod test {
     pub const TEST_TLS_SERVER_LOGIN: &str = "demo";
     pub const TEST_TLS_SERVER_PASSWORD: &str = "password";
 }
+
+#[cfg(all(feature = "_secure", not(any(feature = "sync-secure", feature = "async-secure"))))]
+compile_error!("feature \"_secure\" is internal and cannot be used alone; use features \"sync-secure\" or \"async-secure\" instead");
