@@ -57,7 +57,7 @@ pub struct TlsCtx {
     idents = "BufReader, DataStream, TlsCtx"
 )]
 #[derive(Debug)]
-pub struct FtpStream {
+pub struct FtpStream<> {
     reader: BufReader<DataStream>,
     mode: Mode,
     skip450: bool,

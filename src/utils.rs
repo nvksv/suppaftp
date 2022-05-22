@@ -1,6 +1,7 @@
 use super::types::{FtpError, FtpResult};
 use super::Status;
 use regex::Regex;
+use std::net::{SocketAddr, ToSocketAddrs};
 
 
 lazy_static! {
@@ -36,4 +37,65 @@ pub fn optstrref<S: AsRef<str>>(s: &Option<S>) -> &str {
         Some(ref s) => s.as_ref(), 
         None => "" 
     }
+}
+
+
+pub trait ToSocketAddrsWithDefaultPort {
+    type Iter: Iterator<Item = SocketAddr>;
+    fn to_socket_addrs(&self) -> Result<Self::Iter>;
+    fn default_port() -> u16;
+}
+
+macro_rules! std_impl {
+    ($ty:ty) => {
+        impl ToSocketAddrsWithDefaultPort for $ty {
+            type Iter = <Self as ToSocketAddrs>::Iter;
+            fn to_socket_addrs(&self) -> Result<Self::Iter> {
+                <Self as ToSocketAddrs>::to_socket_addrs(self)
+            } 
+        }
+    }
+}
+
+macro_rules! tuple_impl {
+    ($ty:ty) => {
+    impl ToSocketAddrsWithDefaultPort for $ty {
+        type Iter = <(Self, u16) as ToSocketAddrs>::Iter;
+        fn to_socket_addrs(&self) -> Result<Self::Iter> {
+            <(Self, u16) as ToSocketAddrs>::to_socket_addrs((self, self.default_port()))
+        } 
+    }
+}
+
+std_impl!(SocketAddr);
+std_impl!((&str, u16));
+std_impl!((IpAddr, u16));
+std_impl!((String, u16));
+std_impl!((Ipv4Addr, u16));
+std_impl!((Ipv6Addr, u16));
+std_impl!(SocketAddrV4);
+std_impl!(SocketAddrV6);
+
+tuple_impl!(IpAddr);
+tuple_impl!(Ipv4Addr);
+tuple_impl!(Ipv6Addr);
+
+
+impl ToSocketAddrs for str {
+
+}
+impl ToSocketAddrs for String
+
+
+impl<'a> ToSocketAddrsWithDefaultPort for &'a [SocketAddr] {
+    type Iter = <Self as ToSocketAddrs>::Iter;
+    fn to_socket_addrs(&self) -> Result<Self::Iter> {
+        <Self as ToSocketAddrs>::to_socket_addrs(self)
+    } 
+}
+impl<T: ToSocketAddrs + ?Sized> ToSocketAddrsWithDefaultPort for &T {
+    type Iter = <Self as ToSocketAddrs>::Iter;
+    fn to_socket_addrs(&self) -> Result<Self::Iter> {
+        <Self as ToSocketAddrs>::to_socket_addrs(self)
+    } 
 }
