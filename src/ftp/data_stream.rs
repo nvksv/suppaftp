@@ -2,20 +2,21 @@
 //!
 //! This module exposes the async data stream implementation where bytes must be written to/read from
 
-#[cfg(feature = "async-secure")]
-use async_native_tls::TlsStream as TlsStreamAsync;
-#[cfg(feature = "async")]
-use async_std::{
-    io::{Read as ReadAsync, Result as ResultAsync, Write as WriteAsync},
-    net::TcpStream as TcpStreamAsync
-};
+#[maybe_async::maybe(
+    sync(feature = "sync-secure"),
+    async(feature = "async-secure"),
+    idents(async_native_tls(sync="native_tls", async), TlsStream(use)),
+)]
+use async_native_tls::TlsStream;
 
-#[cfg(feature = "sync-secure")]
-use native_tls::TlsStream as TlsStreamSync;
-#[cfg(feature = "sync")]
-use std::{
-    io::{Read as ReadSync, Result as ResultSync, Write as WriteSync},
-    net::TcpStream as TcpStreamSync
+#[maybe_async::maybe(
+    sync(feature = "sync"),
+    async(feature = "async"),
+    idents(async_std(sync="std", async), Read(use), Result(use), Write(use), TcpStream(use)),
+)]
+use async_std::{
+    io::{Read, Result, Write},
+    net::TcpStream
 };
 
 #[cfg(feature = "async")]

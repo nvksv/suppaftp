@@ -10,39 +10,40 @@ use super::Status;
 use crate::command::Command;
 #[cfg(feature = "_secure")]
 use crate::command::ProtectionLevel;
-#[cfg(feature = "sync")]
-use data_stream::DataStreamSync;
-#[cfg(feature = "async")]
-use data_stream::DataStreamAsync;
 use super::utils::*;
 
-#[cfg(feature = "support-ftpclient")]
+//#[cfg(feature = "support-ftpclient")]
 //use crate::callbacks::{FtpClient};
+
+#[maybe_async::maybe(
+    sync(feature = "sync"),
+    async(feature = "async"),
+    idents(DataStream)
+)]
+use data_stream::DataStream;
 
 #[maybe_async::maybe(
     sync(feature = "sync-secure"),
     async(feature = "async-secure"),
-    idents(async_native_tls(sync="native_tls", async="async_native_tls"), TlsConnector)
+    idents(async_native_tls(sync="native_tls", async), TlsConnector(use)),
 )]
 use async_native_tls::TlsConnector;
 
-// #[cfg(feature = "async-secure")]
-// use async_native_tls::TlsConnector as TlsConnectorAsync;
-#[cfg(feature = "async")]
+#[maybe_async::maybe(
+    sync(feature = "sync"),
+    async(feature = "async"),
+    idents(async_std(sync="std", async), copy(fn, use), BufReader(use), Read(use), Write(use), ToSocketAddrs(use), SocketAddr(use), TcpListener(use), TcpStream(use)),
+)]
 use async_std::{
-    io::{copy as copy_async, BufReader as BufReaderAsync, Read as ReadAsync, Write as WriteAsync},
-    net::ToSocketAddrs as ToSocketAddrsAsync,
-    net::{SocketAddr as SocketAddrAsync, TcpListener as TcpListenerAsync, TcpStream as TcpStreamAsync},
-    prelude::*
+    io::{copy, BufReader, Read, Write},
+    net::{ToSocketAddrs, SocketAddr, TcpListener, TcpStream},
 };
 
-//#[cfg(feature = "sync-secure")]
-//use native_tls::TlsConnector as TlsConnectorSync;
 #[cfg(feature = "sync")]
-use std::{
-    io::{copy as copy_sync, BufRead, BufReader as BufReaderSync, Read as ReadSync, Write as WriteSync},
-    net::{SocketAddr as SocketAddrSync, TcpListener as TcpListenerSync, TcpStream as TcpStreamSync, ToSocketAddrs as ToSocketAddrsSync},
-};
+use std::io::BufRead;
+
+#[cfg(feature = "async")]
+use async_std::{prelude::*};
 
 use chrono::offset::TimeZone;
 use chrono::{DateTime, Utc};
@@ -64,7 +65,7 @@ pub struct TlsCtx {
     idents(BufReader, DataStream, TlsCtx),
 )]
 #[derive(Debug)]
-pub struct FtpStream<> {
+pub struct FtpStream {
     reader: BufReader<DataStream>,
     mode: Mode,
     skip450: bool,
