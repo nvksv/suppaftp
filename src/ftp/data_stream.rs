@@ -70,7 +70,7 @@ impl DataStreamSync {
 #[maybe_async::maybe(
     sync(feature="sync", replace_features(_secure = "sync-secure")), 
     async(feature="async", replace_features(_secure = "async-secure")), 
-    idents = "DataStream, TcpStream, TlsStream"
+    idents(DataStream, TcpStream, TlsStream),
 )]
 impl DataStream {
     /// Returns a reference to the underlying TcpStream.
@@ -88,7 +88,7 @@ impl DataStream {
 
 #[maybe_async::maybe(
     sync(feature="sync", replace_features(_secure = "sync-secure")), 
-    idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result"
+    idents(DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result),
 )]
 impl Read for DataStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
@@ -102,7 +102,7 @@ impl Read for DataStream {
 
 #[maybe_async::maybe(
     sync(feature="sync", replace_features(_secure = "sync-secure")), 
-    idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result"
+    idents(DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result),
 )]
 impl Write for DataStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
@@ -134,7 +134,7 @@ pub struct TlsStreamWrapperSync {
 }
 
 
-#[maybe_async::maybe(sync(feature="sync-secure"), idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result")]
+#[maybe_async::maybe(sync(feature="sync-secure"), idents(DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result))]
 impl TlsStreamWrapper {
     /// Get underlying tcp stream
     pub(crate) fn tcp_stream(mut self) -> TcpStreamSync {
@@ -161,7 +161,7 @@ impl TlsStreamWrapper {
     }
 }
 
-#[maybe_async::maybe(sync(feature="sync-secure"), idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result")]
+#[maybe_async::maybe(sync(feature="sync-secure"), idents(DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result))]
 impl From<TlsStream<TcpStream>> for TlsStreamWrapper {
     fn from(stream: TlsStream<TcpStream>) -> Self {
         Self {
@@ -171,7 +171,7 @@ impl From<TlsStream<TcpStream>> for TlsStreamWrapper {
     }
 }
 
-#[maybe_async::maybe(sync(feature="sync-secure"), idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Result")]
+#[maybe_async::maybe(sync(feature="sync-secure"), idents(DataStream, DataStreamProj, TcpStream, TlsStream, Result))]
 impl Drop for TlsStreamWrapper {
     fn drop(&mut self) {
         if self.tls_shutdown {
@@ -190,7 +190,7 @@ impl Drop for TlsStreamWrapper {
 
 #[maybe_async::maybe(
     async(feature="async", replace_features(_secure = "async-secure")), 
-    idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result"
+    idents(DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result),
 )]
 impl Read for DataStream {
     fn poll_read(
@@ -208,7 +208,7 @@ impl Read for DataStream {
 
 #[maybe_async::maybe(
     async(feature="async", replace_features(_secure = "async-secure")), 
-    idents = "DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result"
+    idents(DataStream, DataStreamProj, TcpStream, TlsStream, Write, Result),
 )]
 impl Write for DataStream {
     fn poll_write(

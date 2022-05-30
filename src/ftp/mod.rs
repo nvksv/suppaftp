@@ -6,7 +6,7 @@ mod data_stream;
 
 use super::types::{FileType, FtpError, FtpResult, Mode, Response};
 use super::Status;
-use crate::callbacks;
+//use crate::callbacks;
 use crate::command::Command;
 #[cfg(feature = "_secure")]
 use crate::command::ProtectionLevel;
@@ -17,10 +17,17 @@ use data_stream::DataStreamAsync;
 use super::utils::*;
 
 #[cfg(feature = "support-ftpclient")]
-use crate::callbacks::{FtpStreamCallbacks, FtpStreamCallbacksRef};
+//use crate::callbacks::{FtpClient};
 
-#[cfg(feature = "async-secure")]
-use async_native_tls::TlsConnector as TlsConnectorAsync;
+#[maybe_async::maybe(
+    sync(feature = "sync-secure"),
+    async(feature = "async-secure"),
+    idents(async_native_tls(sync="native_tls", async="async_native_tls"), TlsConnector)
+)]
+use async_native_tls::TlsConnector;
+
+// #[cfg(feature = "async-secure")]
+// use async_native_tls::TlsConnector as TlsConnectorAsync;
 #[cfg(feature = "async")]
 use async_std::{
     io::{copy as copy_async, BufReader as BufReaderAsync, Read as ReadAsync, Write as WriteAsync},
@@ -29,8 +36,8 @@ use async_std::{
     prelude::*
 };
 
-#[cfg(feature = "sync-secure")]
-use native_tls::TlsConnector as TlsConnectorSync;
+//#[cfg(feature = "sync-secure")]
+//use native_tls::TlsConnector as TlsConnectorSync;
 #[cfg(feature = "sync")]
 use std::{
     io::{copy as copy_sync, BufRead, BufReader as BufReaderSync, Read as ReadSync, Write as WriteSync},
@@ -43,7 +50,7 @@ use std::str::FromStr;
 use std::string::String;
 
 /// Some data for TLS mode
-#[maybe_async::maybe(sync(feature="sync-secure"), async(feature="async-secure"), idents = "BufReader, DataStream, TlsConnector")]
+#[maybe_async::maybe(sync(feature="sync-secure"), async(feature="async-secure"), idents(BufReader, DataStream, TlsConnector))]
 #[derive(Debug)]
 pub struct TlsCtx {
     pub tls_connector: TlsConnector,
@@ -54,7 +61,7 @@ pub struct TlsCtx {
 #[maybe_async::maybe(
     sync(feature="sync", replace_features(_secure = "sync-secure")), 
     async(feature="async", replace_features(_secure = "async-secure")), 
-    idents = "BufReader, DataStream, TlsCtx"
+    idents(BufReader, DataStream, TlsCtx),
 )]
 #[derive(Debug)]
 pub struct FtpStream<> {
@@ -65,18 +72,18 @@ pub struct FtpStream<> {
     tls_ctx: Option<TlsCtx>,
     #[cfg(feature = "_with-welcome-msg")]
     welcome_msg: Option<String>,
-    #[cfg(feature = "support-ftpclient")]
-    callbacks: FtpStreamCallbacksRef,
+    // #[cfg(feature = "support-ftpclient")]
+    // callbacks: FtpStreamCallbacksRef,
 }
 
 #[maybe_async::maybe(
     sync(feature="sync", replace_features(_secure = "sync-secure")), 
     async(feature="async", replace_features(_secure = "async-secure")), 
-    idents = "DataStream, TlsConnector, TlsCtx, BufReader, TcpStream, ToSocketAddrs, SocketAddr, TcpListener, Read, Write, fn copy"
+    idents(DataStream, TlsConnector, TlsCtx, BufReader, TcpStream, ToSocketAddrs, SocketAddr, TcpListener, Read, Write, copy(fn)),
 )]
 impl FtpStream {
     /// Creates an FTP Stream.
-    pub async fn connect<A: ToSocketAddrs>(addr: A, #[cfg(feature = "support-ftpclient")] callbacks: FtpStreamCallbacksRef) -> FtpResult<Self> {
+    pub async fn connect<A: ToSocketAddrs, #[cfg(feature = "support-ftpclient")] Client: FtpClient>(addr: A) -> FtpResult<Self> {
         debug!("Connecting to server");
 
         let stream = TcpStream::connect(addr).await?;
@@ -90,8 +97,8 @@ impl FtpStream {
             tls_ctx: None,
             #[cfg(feature = "_with-welcome-msg")]
             welcome_msg: None,
-            #[cfg(feature = "support-ftpclient")]
-            callbacks,
+            // #[cfg(feature = "support-ftpclient")]
+            // callbacks,
         };
 
         debug!("Reading server response...");
@@ -106,7 +113,7 @@ impl FtpStream {
 
         #[cfg(feature = "support-ftpclient")]
         {
-            ftp_stream.callbacks.welcome_response(response);
+//            ftp_stream.callbacks.welcome_response(response);
         }
 
         Ok(ftp_stream)

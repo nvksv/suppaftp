@@ -48,7 +48,7 @@ serial_test = "^0.5.1"
 
 [features]
 # By default we use sync mode
-default = ["_with-welcome-msg", "sync", "support-ftpclient"]
+default = ["_with-welcome-msg", "sync", "sync-secure", "async-secure"]
 
 # Basic features
 sync = []

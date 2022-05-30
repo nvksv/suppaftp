@@ -1,7 +1,7 @@
-use crate::types::{FileType, FtpError, FtpResult, Mode, Response};
+//use crate::types::{FileType, FtpError, FtpResult, Mode, Response};
 
-pub trait FtpStreamCallbacks {
-    fn welcome_response(&mut self, response: Response);
-}
+// pub trait FtpClient {
+//     fn welcome_response(&mut self, response: Response);
+// }
 
-pub type FtpStreamCallbacksRef = Box<dyn FtpStreamCallbacks>;
+//pub type FtpClientRef = Box<dyn FtpStreamCallbacks>;
