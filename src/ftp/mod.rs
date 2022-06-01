@@ -2,6 +2,31 @@
 //!
 //! This module contains the definition for all async implementation of suppaftp
 
+maybe_async::content! {
+
+#![maybe_async::default(
+    idents(
+        async_native_tls(sync="native_tls", async), 
+        async_std(sync="std", async), 
+        copy(fn, use), 
+        BufReader(use), 
+        Read(use), 
+        Write(use), 
+        ToSocketAddrs(use), 
+        SocketAddr(use), 
+        TcpListener(use), 
+        TcpStream(use),
+        TlsConnector(use),
+        Cursor,
+        DataStream,
+        TlsCtx,
+        FtpStream,
+        test_setup_stream(fn),
+        test_finalize_stream(fn),
+        test_tls_connector(fn),
+    )
+)]
+
 mod data_stream;
 
 use super::types::{FileType, FtpError, FtpResult, Mode, Response};
@@ -15,25 +40,13 @@ use super::utils::*;
 //#[cfg(feature = "support-ftpclient")]
 //use crate::callbacks::{FtpClient};
 
-#[maybe_async::maybe(
-    sync(feature = "sync"),
-    async(feature = "async"),
-    idents(DataStream)
-)]
+#[maybe_async::maybe(sync(feature = "sync"), async(feature = "async"))]
 use data_stream::DataStream;
 
-#[maybe_async::maybe(
-    sync(feature = "sync-secure"),
-    async(feature = "async-secure"),
-    idents(async_native_tls(sync="native_tls", async), TlsConnector(use)),
-)]
+#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
 use async_native_tls::TlsConnector;
 
-#[maybe_async::maybe(
-    sync(feature = "sync"),
-    async(feature = "async"),
-    idents(async_std(sync="std", async), copy(fn, use), BufReader(use), Read(use), Write(use), ToSocketAddrs(use), SocketAddr(use), TcpListener(use), TcpStream(use)),
-)]
+#[maybe_async::maybe(sync(feature = "sync"), async(feature = "async"))]
 use async_std::{
     io::{copy, BufReader, Read, Write},
     net::{ToSocketAddrs, SocketAddr, TcpListener, TcpStream},
@@ -51,7 +64,7 @@ use std::str::FromStr;
 use std::string::String;
 
 /// Some data for TLS mode
-#[maybe_async::maybe(sync(feature="sync-secure"), async(feature="async-secure"), idents(BufReader, DataStream, TlsConnector))]
+#[maybe_async::maybe(sync(feature="sync-secure"), async(feature="async-secure"))]
 #[derive(Debug)]
 pub struct TlsCtx {
     pub tls_connector: TlsConnector,
@@ -62,7 +75,6 @@ pub struct TlsCtx {
 #[maybe_async::maybe(
     sync(feature="sync", replace_features(_secure = "sync-secure")), 
     async(feature="async", replace_features(_secure = "async-secure")), 
-    idents(BufReader, DataStream, TlsCtx),
 )]
 #[derive(Debug)]
 pub struct FtpStream {
@@ -80,7 +92,6 @@ pub struct FtpStream {
 #[maybe_async::maybe(
     sync(feature="sync", replace_features(_secure = "sync-secure")), 
     async(feature="async", replace_features(_secure = "async-secure")), 
-    idents(DataStream, TlsConnector, TlsCtx, BufReader, TcpStream, ToSocketAddrs, SocketAddr, TcpListener, Read, Write, copy(fn)),
 )]
 impl FtpStream {
     /// Creates an FTP Stream.
@@ -894,30 +905,30 @@ mod test {
     use std::io::Cursor as CursorSync;
 
     #[cfg(feature = "async-secure")]
-    fn tls_connector_async() -> TlsConnectorAsync {
+    fn test_tls_connector_async() -> TlsConnectorAsync {
         TlsConnectorAsync::new()
     }
 
     #[cfg(feature = "sync-secure")]
-    fn tls_connector_sync() -> TlsConnectorSync {
+    fn test_tls_connector_sync() -> TlsConnectorSync {
         TlsConnectorSync::new().unwrap()
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn connect() {
         crate::log_init();
-        let stream: FtpStream = setup_stream().await;
-        finalize_stream(stream).await;
+        let stream: FtpStream = test_setup_stream().await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test), idents = "FtpStream, TlsConnector, fn tls_connector")]
+    #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test))]
     #[serial]
     async fn connect_tls() {
         crate::log_init();
         let ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR).await.unwrap();
         let mut ftp_stream = ftp_stream
-            .into_secure(tls_connector(), TEST_TLS_SERVER_NAME)
+            .into_secure(test_tls_connector(), TEST_TLS_SERVER_NAME)
             .await
             .ok()
             .unwrap();
@@ -931,14 +942,14 @@ mod test {
         assert!(ftp_stream.quit().await.is_ok());
     }
 
-    #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test), idents = "FtpStream, TlsConnector, fn tls_connector")]
+    #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test))]
     #[serial]
     async fn should_work_after_clear_command_channel() {
         crate::log_init();
         let mut ftp_stream = FtpStream::connect(TEST_TLS_SERVER_ADDR)
             .await
             .unwrap()
-            .into_secure(tls_connector(), TEST_TLS_SERVER_NAME)
+            .into_secure(test_tls_connector(), TEST_TLS_SERVER_NAME)
             .await
             .ok()
             .unwrap()
@@ -954,7 +965,7 @@ mod test {
         assert!(ftp_stream.quit().await.is_ok());
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn should_change_mode() {
         crate::log_init();
@@ -967,66 +978,66 @@ mod test {
         assert_eq!(ftp_stream.mode, Mode::Passive);
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[cfg(feature = "_with-welcome-msg")]
     #[serial]
     async fn welcome_message() {
         crate::log_init();
-        let stream: FtpStream = setup_stream().await;
+        let stream: FtpStream = test_setup_stream().await;
         assert_eq!(
             stream.get_welcome_msg().unwrap(),
             TEST_SERVER_WELCOME
         );
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn get_ref() {
         crate::log_init();
-        let stream: FtpStream = setup_stream().await;
+        let stream: FtpStream = test_setup_stream().await;
         assert!(stream.get_ref().await.set_ttl(255).is_ok());
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn change_wrkdir() {
         crate::log_init();
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         let wrkdir: String = stream.pwd().await.ok().unwrap();
         assert!(stream.cwd("/").await.is_ok());
         assert_eq!(stream.pwd().await.ok().unwrap().as_str(), "/");
         assert!(stream.cwd(wrkdir.as_str()).await.is_ok());
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn cd_up() {
         crate::log_init();
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         let wrkdir: String = stream.pwd().await.ok().unwrap();
         assert!(stream.cdup().await.is_ok());
         assert_eq!(stream.pwd().await.ok().unwrap().as_str(), "/");
         assert!(stream.cwd(wrkdir.as_str()).await.is_ok());
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn noop() {
         crate::log_init();
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         assert!(stream.noop().await.is_ok());
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn make_and_remove_dir() {
         crate::log_init();
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         // Make directory
         assert!(stream.mkdir("omar").await.is_ok());
         // It shouldn't allow me to re-create the directory; should return error code 550
@@ -1038,28 +1049,28 @@ mod test {
         }
         // Remove directory
         assert!(stream.rmdir("omar").await.is_ok());
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn set_transfer_type() {
         crate::log_init();
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         assert!(stream.transfer_type(FileType::Binary).await.is_ok());
         assert!(stream
             .transfer_type(FileType::Ascii(FormatControl::Default))
             .await
             .is_ok());
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, Cursor, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn transfer_file() {
         crate::log_init();
 
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         // Set transfer type to Binary
         assert!(stream.transfer_type(FileType::Binary).await.is_ok());
         // Write file
@@ -1126,14 +1137,14 @@ mod test {
 
         // List directory again
         assert_eq!(stream.list(None).await.ok().unwrap().len(), 0);
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn should_abort_transfer() {
         crate::log_init();
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         // Set transfer type to Binary
         assert!(stream.transfer_type(FileType::Binary).await.is_ok());
         // cleanup
@@ -1156,14 +1167,14 @@ mod test {
         assert!(stream.list(None).await.is_ok());
         // cleanup
         let _ = stream.rm("test.bin").await;
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test), idents = "FtpStream, TlsConnector, fn setup_stream, fn finalize_stream")]
+    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn should_resume_transfer() {
         crate::log_init();
-        let mut stream: FtpStream = setup_stream().await;
+        let mut stream: FtpStream = test_setup_stream().await;
         // Set transfer type to Binary
         assert!(stream.transfer_type(FileType::Binary).await.is_ok());
         // get dir
@@ -1182,7 +1193,7 @@ mod test {
         drop(stream);
         drop(transfer_stream);
         // Re-connect to server
-        let mut stream = setup_stream().await;
+        let mut stream = test_setup_stream().await;
         assert!(stream.login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD).await.is_ok());
         // Go back to previous dir
         assert!(stream.cwd(wrkdir).await.is_ok());
@@ -1207,13 +1218,13 @@ mod test {
         // Remove file
         assert!(stream.rm("test.bin").await.is_ok());
         // Drop stream
-        finalize_stream(stream).await;
+        test_finalize_stream(stream).await;
     }
 
     // -- test utils
 
-    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"), idents = "FtpStream, TlsConnector")]
-    async fn setup_stream() -> FtpStream {
+    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    async fn test_setup_stream() -> FtpStream {
         let mut ftp_stream = FtpStream::connect(TEST_SERVER_ADDR).await.unwrap();
         assert!(ftp_stream.login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD).await.is_ok());
         // Create wrkdir
@@ -1224,8 +1235,8 @@ mod test {
         ftp_stream
     }
 
-    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"), idents = "FtpStream, TlsConnector")]
-    async fn finalize_stream(mut stream: FtpStream) {
+    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    async fn test_finalize_stream(mut stream: FtpStream) {
         crate::log_init();
         // Get working directory
         let wrkdir: String = stream.pwd().await.ok().unwrap();
@@ -1244,3 +1255,6 @@ mod test {
         format!("temp_{}", name)
     }
 }
+
+}
+
