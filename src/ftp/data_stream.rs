@@ -143,7 +143,7 @@ pub struct TlsStreamWrapper {
 #[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
 impl TlsStreamWrapper {
     /// Get underlying tcp stream
-    #[cfg(feature = "sync-secure")]
+    #[maybe_async::only_if(sync)]
     pub(crate) fn tcp_stream(mut self) -> TcpStream {
         let mut stream = self.stream.get_ref().try_clone().unwrap();
 
@@ -158,7 +158,7 @@ impl TlsStreamWrapper {
     }
 
     /// Get underlying tcp stream
-    #[cfg(feature = "async-secure")]
+    #[maybe_async::only_if(async)]
     pub(crate) fn tcp_stream(mut self) -> TcpStream {
         let mut stream = self.stream.get_ref().clone();
         stream
@@ -187,7 +187,7 @@ impl From<TlsStream<TcpStream>> for TlsStreamWrapper {
 }
 
 #[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
-#[cfg(feature = "sync-secure")]
+#[maybe_async::only_if(sync)]
 impl Drop for TlsStreamWrapper {
     fn drop(&mut self) {
         if self.tls_shutdown {

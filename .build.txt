@@ -1,0 +1,1663 @@
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync-secure")] use native_tls :: TlsStream as TlsStreamSync ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async-secure")] use async_native_tls :: TlsStream as
+TlsStreamAsync ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")] use std ::
+{
+    io :: { Read as ReadSync, Result as ResultSync, Write as WriteSync }, net
+    :: TcpStream as TcpStreamSync
+} ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")] use async_std ::
+{
+    io :: { Read as ReadAsync, Result as ResultAsync, Write as WriteAsync },
+    net :: TcpStream as TcpStreamAsync
+} ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")] impl DataStreamSync
+{
+    #[doc = " Returns a reference to the underlying TcpStream."] pub fn
+    get_ref(& self) -> & TcpStreamSync
+    {
+        match self
+        {
+            DataStreamSync :: Tcp(ref stream) => stream,
+            #[cfg(feature = "sync-secure")] DataStreamSync :: Tls(ref stream)
+            => stream.get_ref(),
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")] impl DataStreamAsync
+{
+    #[doc = " Returns a reference to the underlying TcpStream."] pub fn
+    get_ref(& self) -> & TcpStreamAsync
+    {
+        match self
+        {
+            DataStreamAsync :: Tcp(ref stream) => stream,
+            #[cfg(feature = "async-secure")] DataStreamAsync ::
+            Tls(ref stream) => stream.get_ref(),
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")] impl ReadSync for DataStreamSync
+{
+    fn read(& mut self, buf : & mut [u8]) -> ResultSync < usize >
+    {
+        match self
+        {
+            DataStreamSync :: Tcp(ref mut stream) => stream.read(buf),
+            #[cfg(feature = "sync-secure")] DataStreamSync ::
+            Tls(ref mut stream) => stream.mut_ref().read(buf),
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")] impl WriteSync for DataStreamSync
+{
+    fn write(& mut self, buf : & [u8]) -> ResultSync < usize >
+    {
+        match self
+        {
+            DataStreamSync :: Tcp(ref mut stream) => stream.write(buf),
+            #[cfg(feature = "sync-secure")] DataStreamSync ::
+            Tls(ref mut stream) => stream.mut_ref().write(buf),
+        }
+    } fn flush(& mut self) -> ResultSync < () >
+    {
+        match self
+        {
+            DataStreamSync :: Tcp(ref mut stream) => stream.flush(),
+            #[cfg(feature = "sync-secure")] DataStreamSync ::
+            Tls(ref mut stream) => stream.mut_ref().flush(),
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync-secure")] #[derive(Debug)]
+#[doc =
+" Tls stream wrapper. This type is a garbage data type used to impl the drop trait for the tls stream."]
+#[doc =
+" This allows me to keep returning `Read` and `Write` traits in stream methods"]
+pub struct TlsStreamWrapperSync
+{
+    stream : TlsStreamSync < TcpStreamSync >, #[cfg(feature = "sync-secure")]
+    tls_shutdown : bool,
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async-secure")] #[derive(Debug)]
+#[doc =
+" Tls stream wrapper. This type is a garbage data type used to impl the drop trait for the tls stream."]
+#[doc =
+" This allows me to keep returning `Read` and `Write` traits in stream methods"]
+pub struct TlsStreamWrapperAsync
+{
+    stream : TlsStreamAsync < TcpStreamAsync >,
+    #[cfg(feature = "sync-secure")] tls_shutdown : bool,
+}
+-^--------------------------------------------------------
+process_attribute_if: success=true, current_key=Some("sync"), key=sync
+process_attribute_if: success=false, current_key=Some("sync"), key=async
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync-secure")] impl TlsStreamWrapperSync
+{
+    #[doc = " Get underlying tcp stream"] #[maybe_async :: noop(sync)]
+    pub(crate) fn tcp_stream(mut self) -> TcpStreamSync
+    {
+        let mut stream = self.stream.get_ref().try_clone().unwrap() ;
+        self.tls_shutdown = false ; if let Err(err) = stream.flush()
+        { error! ("Error in flushing tcp stream: {}", err) ; } trace!
+        ("TLS stream terminated") ; stream
+    } #[doc = " Get underlying tcp stream"] #[maybe_async :: remove(async)]
+    pub(crate) fn tcp_stream(mut self) -> TcpStreamSync
+    { let mut stream = self.stream.get_ref().clone() ; stream }
+    #[doc = " Get ref to underlying tcp stream"] pub(crate) fn get_ref(& self)
+    -> & TcpStreamSync { self.stream.get_ref() }
+    #[doc = " Get mutable reference to tls stream"] pub(crate) fn
+    mut_ref(& mut self) -> & mut TlsStreamSync < TcpStreamSync >
+    { & mut self.stream }
+}
+-^--------------------------------------------------------
+process_attribute_if: success=false, current_key=Some("async"), key=sync
+process_attribute_if: success=true, current_key=Some("async"), key=async
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async-secure")] impl TlsStreamWrapperAsync
+{
+    #[doc = " Get underlying tcp stream"] #[maybe_async :: remove(sync)]
+    pub(crate) fn tcp_stream(mut self) -> TcpStreamAsync
+    {
+        let mut stream = self.stream.get_ref().try_clone().unwrap() ;
+        self.tls_shutdown = false ; if let Err(err) = stream.flush()
+        { error! ("Error in flushing tcp stream: {}", err) ; } trace!
+        ("TLS stream terminated") ; stream
+    } #[doc = " Get underlying tcp stream"] #[maybe_async :: noop(async)]
+    pub(crate) fn tcp_stream(mut self) -> TcpStreamAsync
+    { let mut stream = self.stream.get_ref().clone() ; stream }
+    #[doc = " Get ref to underlying tcp stream"] pub(crate) fn get_ref(& self)
+    -> & TcpStreamAsync { self.stream.get_ref() }
+    #[doc = " Get mutable reference to tls stream"] pub(crate) fn
+    mut_ref(& mut self) -> & mut TlsStreamAsync < TcpStreamAsync >
+    { & mut self.stream }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync-secure")] impl From < TlsStreamSync < TcpStreamSync > >
+for TlsStreamWrapperSync
+{
+    fn from(stream : TlsStreamSync < TcpStreamSync >) -> Self
+    { Self { stream, #[cfg(feature = "sync-secure")] tls_shutdown : true, } }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async-secure")] impl From < TlsStreamAsync < TcpStreamAsync >
+> for TlsStreamWrapperAsync
+{
+    fn from(stream : TlsStreamAsync < TcpStreamAsync >) -> Self
+    { Self { stream, #[cfg(feature = "sync-secure")] tls_shutdown : true, } }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync-secure")] #[cfg(feature = "sync-secure")] impl Drop for
+TlsStreamWrapperSync
+{
+    fn drop(& mut self)
+    {
+        if self.tls_shutdown
+        {
+            if let Err(err) = self.stream.shutdown()
+            { error! ("Failed to shutdown stream: {}", err) ; } else
+            { debug! ("TLS Stream shut down") ; }
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async-secure")] #[cfg(feature = "sync-secure")] impl Drop for
+TlsStreamWrapperAsync
+{
+    fn drop(& mut self)
+    {
+        if self.tls_shutdown
+        {
+            if let Err(err) = self.stream.shutdown()
+            { error! ("Failed to shutdown stream: {}", err) ; } else
+            { debug! ("TLS Stream shut down") ; }
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")] impl ReadAsync for DataStreamAsync
+{
+    fn
+    poll_read(self : Pin < & mut Self >, cx : & mut std :: task :: Context <
+    '_ >, buf : & mut [u8],) -> std :: task :: Poll < ResultAsync < usize > >
+    {
+        match self.project()
+        {
+            DataStreamProjAsync :: Tcp(stream) => stream.poll_read(cx, buf),
+            #[cfg(feature = "async-secure")] DataStreamProjAsync ::
+            Tls(stream) => stream.poll_read(cx, buf),
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")] impl WriteAsync for DataStreamAsync
+{
+    fn
+    poll_write(self : Pin < & mut Self >, cx : & mut std :: task :: Context <
+    '_ >, buf : & [u8],) -> std :: task :: Poll < ResultAsync < usize > >
+    {
+        match self.project()
+        {
+            DataStreamProjAsync :: Tcp(stream) => stream.poll_write(cx, buf),
+            #[cfg(feature = "async-secure")] DataStreamProjAsync ::
+            Tls(stream) => stream.poll_write(cx, buf),
+        }
+    } fn
+    poll_flush(self : std :: pin :: Pin < & mut Self >, cx : & mut std :: task
+    :: Context < '_ >,) -> std :: task :: Poll < ResultAsync < () > >
+    {
+        match self.project()
+        {
+            DataStreamProjAsync :: Tcp(stream) => stream.poll_flush(cx),
+            #[cfg(feature = "async-secure")] DataStreamProjAsync ::
+            Tls(stream) => stream.poll_flush(cx),
+        }
+    } fn
+    poll_close(self : std :: pin :: Pin < & mut Self >, cx : & mut std :: task
+    :: Context < '_ >,) -> std :: task :: Poll < ResultAsync < () > >
+    {
+        match self.project()
+        {
+            DataStreamProjAsync :: Tcp(stream) => stream.poll_close(cx),
+            #[cfg(feature = "async-secure")] DataStreamProjAsync ::
+            Tls(stream) => stream.poll_close(cx),
+        }
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")] use data_stream :: DataStreamSync ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")] use data_stream :: DataStreamAsync ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync-secure")] use native_tls :: TlsConnector as
+TlsConnectorSync ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async-secure")] use async_native_tls :: TlsConnector as
+TlsConnectorAsync ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")] use std ::
+{
+    io ::
+    {
+        copy as copy_sync, BufReader as BufReaderSync, Read as ReadSync, Write
+        as WriteSync
+    }, net ::
+    {
+        ToSocketAddrs as ToSocketAddrsSync, SocketAddr as SocketAddrSync,
+        TcpListener as TcpListenerSync, TcpStream as TcpStreamSync
+    },
+} ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")] use async_std ::
+{
+    io ::
+    {
+        copy as copy_async, BufReader as BufReaderAsync, Read as ReadAsync,
+        Write as WriteAsync
+    }, net ::
+    {
+        ToSocketAddrs as ToSocketAddrsAsync, SocketAddr as SocketAddrAsync,
+        TcpListener as TcpListenerAsync, TcpStream as TcpStreamAsync
+    },
+} ;
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync-secure")] #[doc = " Some data for TLS mode"]
+#[derive(Debug)] pub struct TlsCtxSync
+{ pub tls_connector : TlsConnectorSync, pub domain : String, }
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async-secure")] #[doc = " Some data for TLS mode"]
+#[derive(Debug)] pub struct TlsCtxAsync
+{ pub tls_connector : TlsConnectorAsync, pub domain : String, }
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")]
+#[doc =
+" Stream to interface with the FTP server. This interface is only for the command stream."]
+#[derive(Debug)] pub struct FtpStreamSync
+{
+    reader : BufReaderSync < DataStreamSync >, mode : Mode, skip450 : bool,
+    #[cfg(feature = "sync-secure")] tls_ctx : Option < TlsCtxSync >,
+    #[cfg(feature = "_with-welcome-msg")] welcome_msg : Option < String >,
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")]
+#[doc =
+" Stream to interface with the FTP server. This interface is only for the command stream."]
+#[derive(Debug)] pub struct FtpStreamAsync
+{
+    reader : BufReaderAsync < DataStreamAsync >, mode : Mode, skip450 : bool,
+    #[cfg(feature = "async-secure")] tls_ctx : Option < TlsCtxAsync >,
+    #[cfg(feature = "_with-welcome-msg")] welcome_msg : Option < String >,
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_sync out: 
+#[cfg(feature = "sync")] impl FtpStreamSync
+{
+    #[doc = " Creates an FTP Stream."] pub fn connect < A : ToSocketAddrsSync,
+    #[cfg(feature = "support-ftpclient")] Client : FtpClient > (addr : A) ->
+    FtpResult < Self >
+    {
+        debug! ("Connecting to server") ; let stream = TcpStreamSync ::
+        connect(addr) ? ; debug! ("Established connection with server") ; let
+        mut ftp_stream = Self
+        {
+            reader : BufReaderSync :: new(DataStreamSync :: Tcp(stream)), mode
+            : Mode :: Passive, skip450 : false,
+            #[cfg(feature = "sync-secure")] tls_ctx : None,
+            #[cfg(feature = "_with-welcome-msg")] welcome_msg : None,
+        } ; debug! ("Reading server response...") ; #[allow(unused_variables)]
+        let response = ftp_stream.read_response_in(& [Status :: Ready]) ? ;
+        debug! ("Server READY; response: {}", response.body) ;
+        #[cfg(feature = "_with-welcome-msg")]
+        { ftp_stream.welcome_msg = Some(response.body.into_string()) ; }
+        #[cfg(feature = "support-ftpclient")] {} Ok(ftp_stream)
+    } #[doc = " Enable active mode for data channel"] pub fn
+    active_mode(mut self) -> Self { self.mode = Mode :: Active ; self }
+    #[doc = " Set the data channel transfer mode"] pub fn
+    set_mode(& mut self, mode : Mode)
+    { debug! ("Changed mode to {:?}", mode) ; self.mode = mode ; }
+    #[doc =
+    " Switch to a secure mode if possible, using a provided TLS configuration."]
+    #[doc = " This method does nothing if the connect is already secured."]
+    #[doc = ""] #[doc = " ## Panics"] #[doc = ""]
+    #[doc =
+    " Panics if the plain TCP connection cannot be switched to TLS mode."]
+    #[doc = ""] #[doc = " ## Example"] #[doc = ""] #[doc = " ```rust,no_run"]
+    #[doc = " # tokio_test::block_on(async {"]
+    #[doc = " use suppaftp::FtpStream;"]
+    #[doc = " use suppaftp::async_native_tls::{TlsConnector, TlsStream};"]
+    #[doc = " use std::path::Path;"] #[doc = ""]
+    #[doc = " // Create a TlsConnector"]
+    #[doc =
+    " // NOTE: For custom options see <https://docs.rs/native-tls/0.2.6/native_tls/struct.TlsConnectorBuilder.html>"]
+    #[doc = " let mut ctx = TlsConnector::new();"]
+    #[doc =
+    " let mut ftp_stream = FtpStream::connect(\"ftp.server.local:21\").await.unwrap();"]
+    #[doc =
+    " let mut ftp_stream = ftp_stream.into_secure(ctx, \"localhost\").await.unwrap();"]
+    #[doc = " # });"] #[doc = " ```"] #[cfg(feature = "sync-secure")] pub fn
+    into_secure(mut self, tls_connector : TlsConnectorSync, domain : & str,)
+    -> FtpResult < Self >
+    {
+        debug! ("Initializing TLS auth") ;
+        self.command(Command :: Auth, & [Status :: AuthOk]) ? ; debug!
+        ("TLS OK; initializing TLS stream") ; let stream =
+        tls_connector.connect(domain,
+        self.reader.into_inner().into_tcp_stream()) ? ; debug!
+        ("TLS stream OK") ; let mut secured_ftp_stream = Self
+        {
+            reader : BufReaderSync ::
+            new(DataStreamSync :: Tls(stream.into())), mode : self.mode,
+            skip450 : false, tls_ctx :
+            Some(TlsCtxSync { tls_connector, domain : domain.into() }),
+            #[cfg(feature = "_with-welcome-msg")] welcome_msg :
+            self.welcome_msg,
+        } ;
+        secured_ftp_stream.command(Command :: Pbsz(0), &
+        [Status :: CommandOk]) ? ;
+        secured_ftp_stream.command(Command ::
+        Prot(ProtectionLevel :: Private), & [Status :: CommandOk]) ? ;
+        Ok(secured_ftp_stream)
+    } #[doc = " Returns welcome message retrieved from server (if available)"]
+    #[cfg(feature = "_with-welcome-msg")] pub fn get_welcome_msg(& self) ->
+    Option < & str > { self.welcome_msg.as_deref() }
+    #[doc = " Returns a reference to the underlying TcpStream."] pub fn
+    get_ref(& self) -> & TcpStreamSync { self.reader.get_ref().get_ref() }
+    #[doc = " Log in to the FTP server."] pub fn login < S : AsRef < str > >
+    (& mut self, user : S, password : S) -> FtpResult < () >
+    {
+        debug! ("Signin in with user '{}'", user.as_ref()) ; let user_response
+        =
+        self.command(Command :: new_user(user), &
+        [Status :: LoggedIn, Status :: NeedPassword]) ? ; if
+        user_response.status == Status :: NeedPassword
+        {
+            debug! ("Password is required") ;
+            self.command(Command :: new_pass(password), &
+            [Status :: LoggedIn]) ? ;
+        } debug! ("Login OK") ; Ok(())
+    } #[doc = " Perform clear command channel (CCC)."]
+    #[doc =
+    " Once the command is performed, the command channel will be encrypted no more."]
+    #[doc = " The data stream will still be secure."]
+    #[cfg(feature = "sync-secure")] pub fn clear_command_channel(mut self) ->
+    FtpResult < Self >
+    {
+        debug! ("performing clear command channel") ;
+        self.command(Command :: ClearCommandChannel, & [Status :: CommandOk])
+        ? ; trace! ("CCC OK") ; self.reader = BufReaderSync ::
+        new(DataStreamSync :: Tcp(self.reader.into_inner().into_tcp_stream()))
+        ; Ok(self)
+    } #[doc = " Change the current directory to the path specified."] pub fn
+    cwd < S : AsRef < str > > (& mut self, path : S) -> FtpResult < () >
+    {
+        debug! ("Changing working directory to {}", path.as_ref()) ;
+        self.command(Command :: new_cwd(path), &
+        [Status :: RequestedFileActionOk]) ? ; Ok(())
+    } #[doc = " Move the current directory to the parent directory."] pub fn
+    cdup(& mut self) -> FtpResult < () >
+    {
+        debug! ("Going to parent directory") ;
+        self.command(Command :: Cdup, &
+        [Status :: CommandOk, Status :: RequestedFileActionOk]) ? ; Ok(())
+    } #[doc = " Gets the current directory"] pub fn pwd(& mut self) ->
+    FtpResult < String >
+    {
+        debug! ("Getting working directory") ; let response =
+        self.command(Command :: Pwd, & [Status :: PathCreated]) ? ; let body =
+        response.body_as_inline_result() ? ;
+        match(body.find('"'), body.rfind('"'))
+        {
+            (Some(begin), Some(end)) if begin < end =>
+            Ok(body [begin + 1 .. end].to_string()), _ =>
+            Err(FtpError :: UnexpectedResponse(response)),
+        }
+    }
+    #[doc =
+    " This does nothing. This is usually just used to keep the connection open."]
+    pub fn noop(& mut self) -> FtpResult < () >
+    {
+        debug! ("Pinging server") ;
+        self.command(Command :: Noop, & [Status :: CommandOk]) ? ; Ok(())
+    } #[doc = " This creates a new directory on the server."] pub fn mkdir < S
+    : AsRef < str > > (& mut self, pathname : S) -> FtpResult < () >
+    {
+        debug! ("Creating directory at {}", pathname.as_ref()) ;
+        self.command(Command :: new_mkd(pathname), & [Status :: PathCreated])
+        ? ; Ok(())
+    }
+    #[doc =
+    " Sets the type of file to be transferred. That is the implementation"]
+    #[doc = " of `TYPE` command."] pub fn
+    transfer_type(& mut self, file_type : FileType) -> FtpResult < () >
+    {
+        debug! ("Setting transfer type {}", file_type.to_string()) ;
+        self.command(Command :: Type(file_type), & [Status :: CommandOk]) ? ;
+        Ok(())
+    } #[doc = " Quits the current FTP session."] pub fn quit(mut self) ->
+    FtpResult < () >
+    {
+        debug! ("Quitting stream") ;
+        self.command(Command :: Quit, & [Status :: Closing]) ? ; Ok(())
+    } #[doc = " Renames the file from_name to to_name"] pub fn rename < S :
+    AsRef < str > > (& mut self, from_name : S, to_name : S) -> FtpResult < ()
+    >
+    {
+        debug! ("Renaming '{}' to '{}'", from_name.as_ref(), to_name.as_ref())
+        ;
+        self.command(Command :: new_rename_from(from_name), &
+        [Status :: RequestFilePending]) ? ;
+        self.command(Command :: new_rename_to(to_name), &
+        [Status :: RequestedFileActionOk]) ? ; Ok(())
+    }
+    #[doc =
+    " The implementation of `RETR` command where `filename` is the name of the file"]
+    #[doc =
+    " to download from FTP and `reader` is the function which operates with the"]
+    #[doc = " data stream opened."] #[doc = ""] #[doc = " ```"]
+    #[doc = " # use suppaftp::{FtpStream, FtpError};"]
+    #[doc = " # use std::io::Cursor;"]
+    #[doc =
+    " # let mut conn = FtpStream::connect(\"ftp.server.local:21\").unwrap();"]
+    #[doc = " # conn.login(\"test\", \"test\").and_then(|_| {"]
+    #[doc =
+    " #     let mut reader = Cursor::new(\"hello, world!\".as_bytes());"]
+    #[doc = " #     conn.put_file(\"retr.txt\", &mut reader)"]
+    #[doc = " # }).unwrap();"]
+    #[doc = " assert!(conn.retr(\"retr.txt\", |stream| {"]
+    #[doc = "     let mut buf = Vec::new();"]
+    #[doc = "     stream.read_to_end(&mut buf).map(|_|"]
+    #[doc = "         assert_eq!(buf, \"hello, world!\".as_bytes())"]
+    #[doc = "     ).map_err(|e| FtpError::ConnectionError(e))"]
+    #[doc = " }).is_ok());"]
+    #[doc = " # assert!(conn.rm(\"retr.txt\").is_ok());"] #[doc = " ```"] pub
+    fn retr < S, F, T > (& mut self, file_name : S, mut reader : F) ->
+    FtpResult < T > where F :
+    FnMut(& mut(dyn ReadSync + std :: marker :: Unpin)) -> FtpResult < T >, S
+    : AsRef < str >,
+    {
+        let mut stream = self.retr_as_stream(file_name) ? ; let result =
+        reader(& mut stream) ? ; self.finalize_retr_stream(stream) ? ;
+        Ok(result)
+    }
+    #[doc =
+    " Simple way to retr a file from the server. This stores the file in a buffer in memory."]
+    #[doc = ""] #[doc = " ```"]
+    #[doc = " # use suppaftp::{FtpStream, FtpError};"]
+    #[doc = " # use std::io::Cursor;"]
+    #[doc =
+    " # let mut conn = FtpStream::connect(\"ftp.server.local:21\").unwrap();"]
+    #[doc = " # conn.login(\"test\", \"test\").and_then(|_| {"]
+    #[doc =
+    " #     let mut reader = Cursor::new(\"hello, world!\".as_bytes());"]
+    #[doc = " #     conn.put_file(\"simple_retr.txt\", &mut reader)"]
+    #[doc = " # }).unwrap();"]
+    #[doc =
+    " let cursor = conn.retr_as_buffer(\"simple_retr.txt\").unwrap();"]
+    #[doc = " // do something with bytes"]
+    #[doc = " assert_eq!(cursor.into_inner(), \"hello, world!\".as_bytes());"]
+    #[doc = " # assert!(conn.rm(\"simple_retr.txt\").is_ok());"]
+    #[doc = " ```"]
+    #[doc =
+    " Retrieves the file name specified from the server as a readable stream."]
+    #[doc = " This method is a more complicated way to retrieve a file."]
+    #[doc = " The reader returned should be dropped."]
+    #[doc =
+    " Also you will have to read the response to make sure it has the correct value."]
+    #[doc = " Once file has been read, call `finalize_retr_stream()`"] pub fn
+    retr_as_stream < S : AsRef < str > > (& mut self, file_name : S) ->
+    FtpResult < DataStreamSync >
+    {
+        debug! ("Retrieving '{}'", file_name.as_ref()) ; let data_stream =
+        self.data_command(Command :: new_retr(file_name)) ? ;
+        self.read_response_in(&
+        [Status :: AboutToSend, Status :: AlreadyOpen]) ? ; Ok(data_stream)
+    }
+    #[doc =
+    " Finalize retr stream; must be called once the requested file, got previously with `retr_as_stream()` has been read"]
+    pub fn finalize_retr_stream(& mut self, stream : impl ReadSync) ->
+    FtpResult < () >
+    {
+        debug! ("Finalizing retr stream") ; drop(stream) ; trace!
+        ("dropped stream") ;
+        self.read_response_in(&
+        [Status :: ClosingDataConnection, Status :: RequestedFileActionOk]) ?
+        ; Ok(())
+    } #[doc = " Removes the remote pathname from the server."] pub fn rmdir <
+    S : AsRef < str > > (& mut self, pathname : S) -> FtpResult < () >
+    {
+        debug! ("Removing directory {}", pathname.as_ref()) ;
+        self.command(Command :: new_rmd(pathname), &
+        [Status :: RequestedFileActionOk]) ? ; Ok(())
+    } #[doc = " Remove the remote file from the server."] pub fn rm < S :
+    AsRef < str > > (& mut self, filename : S) -> FtpResult < () >
+    {
+        debug! ("Removing file {}", filename.as_ref()) ;
+        self.command(Command :: new_dele(filename), &
+        [Status :: RequestedFileActionOk]) ? ; Ok(())
+    } #[doc = " This stores a file on the server."]
+    #[doc =
+    " r argument must be any struct which implemenents the Read trait."]
+    #[doc = " Returns amount of written bytes"] pub fn put_file < S, R >
+    (& mut self, filename : S, r : & mut R) -> FtpResult < u64 > where R :
+    ReadSync + std :: marker :: Unpin, S : AsRef < str >,
+    {
+        let mut data_stream = self.put_with_stream(filename) ? ; let bytes =
+        copy_sync(r, & mut data_stream) ? ;
+        self.finalize_put_stream(data_stream) ? ; Ok(bytes)
+    }
+    #[doc =
+    " Send PUT command and returns a BufWriter, which references the file created on the server"]
+    #[doc =
+    " The returned stream must be then correctly manipulated to write the content of the source file to the remote destination"]
+    #[doc = " The stream must be then correctly dropped."]
+    #[doc =
+    " Once you\'ve finished the write, YOU MUST CALL THIS METHOD: `finalize_put_stream`"]
+    pub fn put_with_stream < S : AsRef < str > > (& mut self, filename : S) ->
+    FtpResult < DataStreamSync >
+    {
+        debug! ("Put file {}", filename.as_ref()) ; let data_stream =
+        self.data_command(Command :: new_store(filename)) ? ;
+        self.read_response_in(&
+        [Status :: AlreadyOpen, Status :: AboutToSend]) ? ; Ok(data_stream)
+    } #[doc = " Finalize put when using stream"]
+    #[doc = " This method must be called once the file has been written and"]
+    #[doc = " `put_with_stream` has been used to write the file"] pub fn
+    finalize_put_stream(& mut self, stream : impl WriteSync) -> FtpResult < ()
+    >
+    {
+        debug! ("Finalizing put stream") ; drop(stream) ; trace!
+        ("Stream dropped") ;
+        self.read_response_in(&
+        [Status :: ClosingDataConnection, Status :: RequestedFileActionOk]) ?
+        ; Ok(())
+    }
+    #[doc =
+    " Open specified file for appending data. Returns the stream to append data to specified file."]
+    #[doc =
+    " Once you\'ve finished the write, YOU MUST CALL THIS METHOD: `finalize_put_stream`"]
+    pub fn append_with_stream < S : AsRef < str > > (& mut self, filename : S)
+    -> FtpResult < DataStreamSync >
+    {
+        debug! ("Appending to file {}", filename.as_ref()) ; let stream =
+        self.data_command(Command :: Appe(filename.as_ref().to_string())) ? ;
+        self.read_response_in(&
+        [Status :: AlreadyOpen, Status :: AboutToSend]) ? ; Ok(stream)
+    } #[doc = " Append data from reader to file at `filename`"] pub fn
+    append_file < R > (& mut self, filename : & str, r : & mut R) -> FtpResult
+    < u64 > where R : ReadSync + std :: marker :: Unpin,
+    {
+        let mut data_stream = self.append_with_stream(filename) ? ; let bytes
+        = copy_sync(r, & mut data_stream) ? ;
+        self.finalize_put_stream(Box :: new(data_stream)) ? ; Ok(bytes)
+    } #[doc = " abort the previous FTP service command"] pub fn abort < R >
+    (& mut self, data_stream : R) -> FtpResult < () > where R : ReadSync + std
+    :: marker :: Unpin,
+    {
+        debug! ("Aborting active file transfer") ;
+        self.perform(Command :: Abor) ? ; drop(data_stream) ; trace!
+        ("dropped stream") ;
+        self.read_response_in(&
+        [Status :: ClosingDataConnection, Status :: TransferAborted]) ? ;
+        self.read_response(Status :: ClosingDataConnection) ? ; self.skip450 =
+        true ; trace! ("Transfer aborted") ; Ok(())
+    }
+    #[doc =
+    " Tell the server to resume the transfer from a certain offset. The offset indicates the amount of bytes to skip"]
+    #[doc = " from the beginning of the file."]
+    #[doc = " the REST command does not actually initiate the transfer."]
+    #[doc =
+    " After issuing a REST command, the client must send the appropriate FTP command to transfer the file"]
+    #[doc = ""]
+    #[doc =
+    " It is possible to cancel the REST command, sending a REST command with offset 0"]
+    pub fn resume_transfer(& mut self, offset : usize) -> FtpResult < () >
+    {
+        debug! ("Requesting to resume transfer at offset {}", offset) ;
+        self.command(Command :: Rest(offset), &
+        [Status :: RequestFilePending]) ? ; debug!
+        ("Resume transfer accepted") ; Ok(())
+    }
+    #[doc =
+    " Execute `LIST` command which returns the detailed file listing in human readable format."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    #[doc = ""] #[doc = " ### Parse result"] #[doc = ""]
+    #[doc = " You can parse the output of this command with"] #[doc = ""]
+    #[doc = " ```rust"] #[doc = ""] #[doc = " use std::str::FromStr;"]
+    #[doc = " use suppaftp::list::File;"] #[doc = ""]
+    #[doc =
+    " let file: File = File::from_str(\"-rw-rw-r-- 1 0  1  8192 Nov 5 2018 omar.txt\")"]
+    #[doc = "     .ok()"] #[doc = "     .unwrap();"] #[doc = " ```"] pub fn
+    list(& mut self, pathname : Option < & str >) -> FtpResult < Vec < String
+    > >
+    {
+        debug! ("Reading {} directory content", pathname.unwrap_or("working"))
+        ; self.stream_lines(Command :: new_list(pathname))
+    }
+    #[doc =
+    " Execute `NLST` command which returns the list of file names only."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    pub fn nlst(& mut self, pathname : Option < & str >) -> FtpResult < Vec <
+    String > >
+    {
+        debug!
+        ("Getting file names for {} directory", pathname.unwrap_or("working"))
+        ; self.stream_lines(Command :: new_nlst(pathname))
+    }
+    #[doc =
+    " Execute `MLST` command which returns the list of file names only."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    pub fn mlst(& mut self, pathname : Option < & str >) -> FtpResult < String
+    >
+    {
+        let response =
+        self.command(Command :: new_mlst(pathname), &
+        [Status :: RequestedFileActionOk]) ? ; let mut lines =
+        response.body_into_multiline_result() ? ; if lines.len() != 1
+        { return Err(FtpError :: BadResponse) ; } let line =
+        lines.pop().unwrap() ; Ok(line)
+    } #[doc = " ### mlsd"] #[doc = ""]
+    #[doc =
+    " Execute `MLSD` command which returns the list of file names only."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    pub fn mlsd(& mut self, pathname : Option < & str >) -> FtpResult < Vec <
+    String > > { self.stream_lines(Command :: new_mlsd(pathname)) }
+    #[doc =
+    " Retrieves the modification time of the file at `pathname` if it exists."]
+    pub fn mdtm < S : AsRef < str > > (& mut self, pathname : S) -> FtpResult
+    < DateTime < Utc > >
+    {
+        debug! ("Getting modification time for {}", pathname.as_ref()) ; let
+        response =
+        self.command(Command :: new_mdtm(pathname), & [Status :: File]) ? ;
+        let line = response.body_as_inline_result() ? ; match
+        MDTM_RE.captures(line)
+        {
+            Some(caps) =>
+            {
+                let(year, month, day) =
+                (caps [1].parse :: < i32 > ().unwrap(), caps [2].parse :: <
+                u32 > ().unwrap(), caps [3].parse :: < u32 > ().unwrap(),) ;
+                let(hour, minute, second) =
+                (caps [4].parse :: < u32 > ().unwrap(), caps [5].parse :: <
+                u32 > ().unwrap(), caps [6].parse :: < u32 > ().unwrap(),) ;
+                Ok(Utc.ymd(year, month, day).and_hms(hour, minute, second))
+            } None => Err(FtpError :: BadResponse),
+        }
+    }
+    #[doc =
+    " Requests the server to list all extension commands, or extended mechanisms, that it supports."]
+    pub fn feat(& mut self) -> FtpResult < Vec < String > >
+    {
+        debug! ("Feat") ; let response =
+        self.command(Command :: Feat, & [Status :: System]) ? ;
+        Ok(response.body.into_vec())
+    }
+    #[doc =
+    " Requests the server to list all extension commands, or extended mechanisms, that it supports."]
+    pub fn opts < S : AsRef < str > >
+    (& mut self, cmd : S, cmd_options : Option < S >) -> FtpResult < String >
+    {
+        debug! ("Opts '{}' '{}'", cmd.as_ref(), optstrref(& cmd_options)) ;
+        let response =
+        self.command(Command :: new_opts(cmd, cmd_options), &
+        [Status :: CommandOk]) ? ; response.body_into_inline_result()
+    }
+    #[doc =
+    " Requests the server to list all extension commands, or extended mechanisms, that it supports."]
+    pub fn lang < S : AsRef < str > > (& mut self, lang_tag : Option < S >) ->
+    FtpResult < String >
+    {
+        debug! ("Lang '{}'", optstrref(& lang_tag)) ; let response =
+        self.command(Command :: new_lang(lang_tag), & [Status :: CommandOk]) ?
+        ; response.body_into_inline_result()
+    }
+    #[doc =
+    " Retrieves the size of the file in bytes at `pathname` if it exists."]
+    pub fn site < S : AsRef < str > > (& mut self, cmd : S) -> FtpResult <
+    String >
+    {
+        debug! ("SITE '{}'", cmd.as_ref()) ; let response =
+        self.command(Command :: new_site(cmd), & [Status :: CommandOk]) ? ;
+        response.body_into_inline_result()
+    }
+    #[doc =
+    " Returns information on the server status, including the status of the current connection"]
+    pub fn stat < S : AsRef < str > > (& mut self, path : Option < S >) ->
+    FtpResult < Vec < String > >
+    {
+        debug! ("Stat '{}'", optstrref(& path)) ; let response =
+        self.command(Command :: new_stat(path), &
+        [Status :: System, Status :: Directory, Status :: File]) ? ;
+        Ok(response.body.into_vec())
+    }
+    #[doc =
+    " Retrieves the size of the file in bytes at `pathname` if it exists."]
+    pub fn size < S : AsRef < str > > (& mut self, pathname : S) -> FtpResult
+    < usize >
+    {
+        debug! ("Getting file size for {}", pathname.as_ref()) ; let response
+        = self.command(Command :: new_size(pathname), & [Status :: File]) ? ;
+        let line = response.body_as_inline_result() ? ; match
+        SIZE_RE.captures(line)
+        {
+            Some(caps) => Ok(caps [1].parse().unwrap()), None =>
+            Err(FtpError :: BadResponse),
+        }
+    } #[doc = " Retrieve stream \"message\""] fn
+    get_lines_from_stream(data_stream : & mut BufReaderSync < DataStreamSync
+    >) -> FtpResult < Vec < String > >
+    {
+        let mut lines : Vec < String > = Vec :: new() ; loop
+        {
+            let mut line = String :: new() ; match
+            data_stream.read_line(& mut line)
+            {
+                Ok(0) => break, Ok(_) =>
+                {
+                    if line.ends_with('\n')
+                    { line.pop() ; if line.ends_with('\r') { line.pop() ; } } if
+                    line.is_empty() { continue ; } lines.push(line) ;
+                } Err(_) => return Err(FtpError :: BadResponse),
+            }
+        } trace! ("Lines from stream {:?}", lines) ; Ok(lines)
+    } #[doc = " Read response from stream"] fn
+    read_response(& mut self, expected_code : Status) -> FtpResult < Response
+    > { self.read_response_in(& [expected_code]) }
+    #[doc = " Retrieve single line response"] fn
+    read_response_in(& mut self, expected_status : & [Status]) -> FtpResult <
+    Response >
+    {
+        let mut line_buffer = String :: new() ; let mut line =
+        self.read_line(& mut line_buffer) ? ; trace!
+        ("CC IN: {}", line.trim_end()) ; if line.len() < CODE_LENGTH + 1
+        { return Err(FtpError :: BadResponse) ; }
+        let(mut status, mut delim, mut head) = parse_status_delim_tail(line) ?
+        ; if self.skip450
+        {
+            self.skip450 = false ; if status == Status ::
+            RequestFileActionIgnored
+            {
+                line = self.read_line(& mut line_buffer) ? ; trace!
+                ("CC IN: {}", line.trim_end()) ; if line.len() < CODE_LENGTH +
+                1 { return Err(FtpError :: BadResponse) ; }
+                (status, delim, head) = parse_status_delim_tail(line) ? ;
+            }
+        } let response = match delim
+        {
+            SPACE_CHAR => { Response :: new_inline(status, head) }, MINUS_CHAR
+            =>
+            {
+                let mut body : Vec < String > = vec! [] ; loop
+                {
+                    line = self.read_line(& mut line_buffer) ? ; trace!
+                    ("CC IN: {}", line) ; let first_char =
+                    line.chars().nth(0).ok_or_else(| | FtpError :: BadResponse)
+                    ? ; match first_char
+                    {
+                        SPACE_CHAR => { body.push(line [1 ..].to_string()) }, ch if
+                        ch.is_ascii_digit() =>
+                        {
+                            let(status2, delim, tail) = parse_status_delim_tail(line) ?
+                            ; if status2 != status || delim != SPACE_CHAR
+                            { return Err(FtpError :: BadResponse) ; } ; break Response
+                            :: new_multiline(status, head, body, tail) ;
+                        }, _ => { return Err(FtpError :: BadResponse) ; }
+                    }
+                }
+            }, _ => { return Err(FtpError :: BadResponse) ; }
+        } ; if expected_status.contains(& status) { Ok(response) } else
+        {
+            let err = match status
+            {
+                Status :: BadCommand | Status :: NotImplemented | Status ::
+                BadSequence =>
+                {
+                    FtpError :: BadCommand
+                    { status, message : response.body_into_inline_result() ? }
+                }, Status :: BadArguments | Status :: NotImplementedParameter
+                =>
+                {
+                    FtpError :: BadParameter
+                    { status, message : response.body_into_inline_result() ? }
+                }, _ => { FtpError :: UnexpectedResponse(response) }
+            } ; Err(err)
+        }
+    } #[doc = " Write data to stream with command to perform"] fn
+    perform(& mut self, command : Command) -> FtpResult < () >
+    {
+        let command = command.to_string() ; trace!
+        ("CC OUT: {}", command.trim_end_matches("\r\n")) ; let stream =
+        self.reader.get_mut() ; stream.write_all(command.as_bytes()) ? ;
+        Ok(())
+    } #[doc = " Execute command which send data back in a command stream"] pub
+    fn command(& mut self, command : Command, expected_code : & [Status]) ->
+    FtpResult < Response >
+    { self.perform(command) ? ; self.read_response_in(expected_code) }
+    #[doc = " Execute command which send data back in a separate stream"] fn
+    data_command(& mut self, cmd : Command) -> FtpResult < DataStreamSync >
+    {
+        let stream = match self.mode
+        {
+            Mode :: Passive =>
+            {
+                let addr = self.pasv() ? ; self.perform(cmd) ? ; TcpStreamSync
+                :: connect(addr) ?
+            }, Mode :: Active =>
+            {
+                let listener = self.active() ? ; self.perform(cmd) ? ;
+                let(stream, _) = listener.accept() ? ; stream
+            }
+        } ; #[cfg(feature = "sync-secure")]
+        {
+            match self.tls_ctx
+            {
+                Some(ref tls_ctx) =>
+                {
+                    let tls_stream =
+                    tls_ctx.tls_connector.connect(tls_ctx.domain.as_str(),
+                    stream) ? ; Ok(DataStreamSync :: Tls(tls_stream.into()))
+                }, None => { Ok(DataStreamSync :: Tcp(stream)) },
+            }
+        } #[cfg(not(feature = "sync-secure"))]
+        { Ok(DataStreamSync :: Tcp(stream)) }
+    } #[doc = " Create a new tcp listener and send a PORT command for it"] fn
+    active(& mut self) -> FtpResult < TcpListenerSync >
+    {
+        debug! ("Starting local tcp listener...") ; let listener =
+        TcpListenerSync :: bind("0.0.0.0:0") ? ; let addr =
+        listener.local_addr() ? ; trace! ("Local address is {}", addr) ; let
+        tcp_stream = match self.reader.get_ref()
+        {
+            DataStreamSync :: Tcp(stream) => stream,
+            #[cfg(feature = "sync-secure")] DataStreamSync :: Tls(stream) =>
+            stream.get_ref(),
+        } ; let ip = tcp_stream.local_addr().unwrap().ip() ; let msb =
+        addr.port() / 256 ; let lsb = addr.port() % 256 ; let ip_port =
+        format! ("{},{},{}", ip.to_string().replace(".", ","), msb, lsb) ;
+        debug! ("Active mode, listening on {}:{}", ip, addr.port()) ; debug!
+        ("Running PORT command") ;
+        self.command(Command :: Port(ip_port), & [Status :: CommandOk]) ? ;
+        Ok(listener)
+    } #[doc = " Runs the PASV command."] fn pasv(& mut self) -> FtpResult <
+    SocketAddrSync >
+    {
+        debug! ("PASV command") ; let response =
+        self.command(Command :: Pasv, & [Status :: PassiveMode]) ? ; let body
+        = response.body_as_inline_result() ? ; let caps =
+        PORT_RE.captures(body).ok_or_else(| | FtpError ::
+        UnexpectedResponse(response.clone())) ? ; let(oct1, oct2, oct3, oct4)
+        =
+        (caps [1].parse :: < u8 > ().unwrap(), caps [2].parse :: < u8 >
+        ().unwrap(), caps [3].parse :: < u8 > ().unwrap(), caps [4].parse :: <
+        u8 > ().unwrap(),) ; let(msb, lsb) =
+        (caps [5].parse :: < u8 > ().unwrap(), caps [6].parse :: < u8 >
+        ().unwrap(),) ; let port = ((msb as u16) << 8) + lsb as u16 ; let addr
+        = format! ("{}.{}.{}.{}:{}", oct1, oct2, oct3, oct4, port) ; trace!
+        ("Passive address: {}", addr) ; let addr = SocketAddrSync ::
+        from_str(& addr) ? ; Ok(addr)
+    } fn read_line < 's > (& mut self, line_buffer : & 's mut String) ->
+    FtpResult < & 's str >
+    {
+        line_buffer.clear() ; match self.reader.read_line(line_buffer)
+        {
+            Ok(size) =>
+            {
+                if size == 0
+                {
+                    debug! ("ERR read_line: EOF") ; return
+                    Err(FtpError :: BadResponse) ;
+                }
+            }, Err(e) =>
+            { debug! ("ERR read_line: {:?}", e) ; return Err(e.into()) },
+        } ; let line =
+        line_buffer.trim_end_matches(| ch | ch == '\r' || ch == '\n') ;
+        Ok(line)
+    }
+    #[doc =
+    " Execute a command which returns list of strings in a separate stream"]
+    fn stream_lines(& mut self, cmd : Command) -> FtpResult < Vec < String > >
+    {
+        let mut data_stream = BufReaderSync :: new(self.data_command(cmd) ?) ;
+        self.read_response_in(&
+        [Status :: AboutToSend, Status :: AlreadyOpen]) ? ; let lines = Self
+        :: get_lines_from_stream(& mut data_stream) ;
+        self.finalize_retr_stream(data_stream) ? ; lines
+    }
+}
+-^--------------------------------------------------------
+-v--------------------------------------------------------
+must_be_async out: 
+#[cfg(feature = "async")] impl FtpStreamAsync
+{
+    #[doc = " Creates an FTP Stream."] pub async fn connect < A :
+    ToSocketAddrsAsync, #[cfg(feature = "support-ftpclient")] Client :
+    FtpClient > (addr : A) -> FtpResult < Self >
+    {
+        debug! ("Connecting to server") ; let stream = TcpStreamAsync ::
+        connect(addr).await ? ; debug! ("Established connection with server")
+        ; let mut ftp_stream = Self
+        {
+            reader : BufReaderAsync :: new(DataStreamAsync :: Tcp(stream)),
+            mode : Mode :: Passive, skip450 : false,
+            #[cfg(feature = "async-secure")] tls_ctx : None,
+            #[cfg(feature = "_with-welcome-msg")] welcome_msg : None,
+        } ; debug! ("Reading server response...") ; #[allow(unused_variables)]
+        let response = ftp_stream.read_response_in(& [Status :: Ready]).await
+        ? ; debug! ("Server READY; response: {}", response.body) ;
+        #[cfg(feature = "_with-welcome-msg")]
+        { ftp_stream.welcome_msg = Some(response.body.into_string()) ; }
+        #[cfg(feature = "support-ftpclient")] {} Ok(ftp_stream)
+    } #[doc = " Enable active mode for data channel"] pub fn
+    active_mode(mut self) -> Self { self.mode = Mode :: Active ; self }
+    #[doc = " Set the data channel transfer mode"] pub fn
+    set_mode(& mut self, mode : Mode)
+    { debug! ("Changed mode to {:?}", mode) ; self.mode = mode ; }
+    #[doc =
+    " Switch to a secure mode if possible, using a provided TLS configuration."]
+    #[doc = " This method does nothing if the connect is already secured."]
+    #[doc = ""] #[doc = " ## Panics"] #[doc = ""]
+    #[doc =
+    " Panics if the plain TCP connection cannot be switched to TLS mode."]
+    #[doc = ""] #[doc = " ## Example"] #[doc = ""] #[doc = " ```rust,no_run"]
+    #[doc = " # tokio_test::block_on(async {"]
+    #[doc = " use suppaftp::FtpStream;"]
+    #[doc = " use suppaftp::async_native_tls::{TlsConnector, TlsStream};"]
+    #[doc = " use std::path::Path;"] #[doc = ""]
+    #[doc = " // Create a TlsConnector"]
+    #[doc =
+    " // NOTE: For custom options see <https://docs.rs/native-tls/0.2.6/native_tls/struct.TlsConnectorBuilder.html>"]
+    #[doc = " let mut ctx = TlsConnector::new();"]
+    #[doc =
+    " let mut ftp_stream = FtpStream::connect(\"ftp.server.local:21\").await.unwrap();"]
+    #[doc =
+    " let mut ftp_stream = ftp_stream.into_secure(ctx, \"localhost\").await.unwrap();"]
+    #[doc = " # });"] #[doc = " ```"] #[cfg(feature = "async-secure")] pub
+    async fn
+    into_secure(mut self, tls_connector : TlsConnectorAsync, domain : & str,)
+    -> FtpResult < Self >
+    {
+        debug! ("Initializing TLS auth") ;
+        self.command(Command :: Auth, & [Status :: AuthOk]).await ? ; debug!
+        ("TLS OK; initializing TLS stream") ; let stream =
+        tls_connector.connect(domain,
+        self.reader.into_inner().into_tcp_stream()).await ? ; debug!
+        ("TLS stream OK") ; let mut secured_ftp_stream = Self
+        {
+            reader : BufReaderAsync ::
+            new(DataStreamAsync :: Tls(stream.into())), mode : self.mode,
+            skip450 : false, tls_ctx :
+            Some(TlsCtxAsync { tls_connector, domain : domain.into() }),
+            #[cfg(feature = "_with-welcome-msg")] welcome_msg :
+            self.welcome_msg,
+        } ;
+        secured_ftp_stream.command(Command :: Pbsz(0), &
+        [Status :: CommandOk]).await ? ;
+        secured_ftp_stream.command(Command ::
+        Prot(ProtectionLevel :: Private), & [Status :: CommandOk]).await ? ;
+        Ok(secured_ftp_stream)
+    } #[doc = " Returns welcome message retrieved from server (if available)"]
+    #[cfg(feature = "_with-welcome-msg")] pub fn get_welcome_msg(& self) ->
+    Option < & str > { self.welcome_msg.as_deref() }
+    #[doc = " Returns a reference to the underlying TcpStream."] pub async fn
+    get_ref(& self) -> & TcpStreamAsync { self.reader.get_ref().get_ref() }
+    #[doc = " Log in to the FTP server."] pub async fn login < S : AsRef < str
+    > > (& mut self, user : S, password : S) -> FtpResult < () >
+    {
+        debug! ("Signin in with user '{}'", user.as_ref()) ; let user_response
+        =
+        self.command(Command :: new_user(user), &
+        [Status :: LoggedIn, Status :: NeedPassword]).await ? ; if
+        user_response.status == Status :: NeedPassword
+        {
+            debug! ("Password is required") ;
+            self.command(Command :: new_pass(password), &
+            [Status :: LoggedIn]).await ? ;
+        } debug! ("Login OK") ; Ok(())
+    } #[doc = " Perform clear command channel (CCC)."]
+    #[doc =
+    " Once the command is performed, the command channel will be encrypted no more."]
+    #[doc = " The data stream will still be secure."]
+    #[cfg(feature = "async-secure")] pub async fn
+    clear_command_channel(mut self) -> FtpResult < Self >
+    {
+        debug! ("performing clear command channel") ;
+        self.command(Command :: ClearCommandChannel, &
+        [Status :: CommandOk]).await ? ; trace! ("CCC OK") ; self.reader =
+        BufReaderAsync ::
+        new(DataStreamAsync ::
+        Tcp(self.reader.into_inner().into_tcp_stream())) ; Ok(self)
+    } #[doc = " Change the current directory to the path specified."] pub
+    async fn cwd < S : AsRef < str > > (& mut self, path : S) -> FtpResult <
+    () >
+    {
+        debug! ("Changing working directory to {}", path.as_ref()) ;
+        self.command(Command :: new_cwd(path), &
+        [Status :: RequestedFileActionOk]).await ? ; Ok(())
+    } #[doc = " Move the current directory to the parent directory."] pub
+    async fn cdup(& mut self) -> FtpResult < () >
+    {
+        debug! ("Going to parent directory") ;
+        self.command(Command :: Cdup, &
+        [Status :: CommandOk, Status :: RequestedFileActionOk]).await ? ;
+        Ok(())
+    } #[doc = " Gets the current directory"] pub async fn pwd(& mut self) ->
+    FtpResult < String >
+    {
+        debug! ("Getting working directory") ; let response =
+        self.command(Command :: Pwd, & [Status :: PathCreated]).await ? ; let
+        body = response.body_as_inline_result() ? ;
+        match(body.find('"'), body.rfind('"'))
+        {
+            (Some(begin), Some(end)) if begin < end =>
+            Ok(body [begin + 1 .. end].to_string()), _ =>
+            Err(FtpError :: UnexpectedResponse(response)),
+        }
+    }
+    #[doc =
+    " This does nothing. This is usually just used to keep the connection open."]
+    pub async fn noop(& mut self) -> FtpResult < () >
+    {
+        debug! ("Pinging server") ;
+        self.command(Command :: Noop, & [Status :: CommandOk]).await ? ;
+        Ok(())
+    } #[doc = " This creates a new directory on the server."] pub async fn
+    mkdir < S : AsRef < str > > (& mut self, pathname : S) -> FtpResult < () >
+    {
+        debug! ("Creating directory at {}", pathname.as_ref()) ;
+        self.command(Command :: new_mkd(pathname), &
+        [Status :: PathCreated]).await ? ; Ok(())
+    }
+    #[doc =
+    " Sets the type of file to be transferred. That is the implementation"]
+    #[doc = " of `TYPE` command."] pub async fn
+    transfer_type(& mut self, file_type : FileType) -> FtpResult < () >
+    {
+        debug! ("Setting transfer type {}", file_type.to_string()) ;
+        self.command(Command :: Type(file_type), &
+        [Status :: CommandOk]).await ? ; Ok(())
+    } #[doc = " Quits the current FTP session."] pub async fn quit(mut self)
+    -> FtpResult < () >
+    {
+        debug! ("Quitting stream") ;
+        self.command(Command :: Quit, & [Status :: Closing]).await ? ; Ok(())
+    } #[doc = " Renames the file from_name to to_name"] pub async fn rename <
+    S : AsRef < str > > (& mut self, from_name : S, to_name : S) -> FtpResult
+    < () >
+    {
+        debug! ("Renaming '{}' to '{}'", from_name.as_ref(), to_name.as_ref())
+        ;
+        self.command(Command :: new_rename_from(from_name), &
+        [Status :: RequestFilePending]).await ? ;
+        self.command(Command :: new_rename_to(to_name), &
+        [Status :: RequestedFileActionOk]).await ? ; Ok(())
+    }
+    #[doc =
+    " The implementation of `RETR` command where `filename` is the name of the file"]
+    #[doc =
+    " to download from FTP and `reader` is the function which operates with the"]
+    #[doc = " data stream opened."] #[doc = ""] #[doc = " ```"]
+    #[doc = " # use suppaftp::{FtpStream, FtpError};"]
+    #[doc = " # use std::io::Cursor;"]
+    #[doc =
+    " # let mut conn = FtpStream::connect(\"ftp.server.local:21\").unwrap();"]
+    #[doc = " # conn.login(\"test\", \"test\").and_then(|_| {"]
+    #[doc =
+    " #     let mut reader = Cursor::new(\"hello, world!\".as_bytes());"]
+    #[doc = " #     conn.put_file(\"retr.txt\", &mut reader)"]
+    #[doc = " # }).unwrap();"]
+    #[doc = " assert!(conn.retr(\"retr.txt\", |stream| {"]
+    #[doc = "     let mut buf = Vec::new();"]
+    #[doc = "     stream.read_to_end(&mut buf).map(|_|"]
+    #[doc = "         assert_eq!(buf, \"hello, world!\".as_bytes())"]
+    #[doc = "     ).map_err(|e| FtpError::ConnectionError(e))"]
+    #[doc = " }).is_ok());"]
+    #[doc = " # assert!(conn.rm(\"retr.txt\").is_ok());"] #[doc = " ```"] pub
+    async fn retr < S, F, T > (& mut self, file_name : S, mut reader : F) ->
+    FtpResult < T > where F :
+    FnMut(& mut(dyn ReadAsync + std :: marker :: Unpin)) -> FtpResult < T >, S
+    : AsRef < str >,
+    {
+        let mut stream = self.retr_as_stream(file_name).await ? ; let result =
+        reader(& mut stream) ? ; self.finalize_retr_stream(stream).await ? ;
+        Ok(result)
+    }
+    #[doc =
+    " Simple way to retr a file from the server. This stores the file in a buffer in memory."]
+    #[doc = ""] #[doc = " ```"]
+    #[doc = " # use suppaftp::{FtpStream, FtpError};"]
+    #[doc = " # use std::io::Cursor;"]
+    #[doc =
+    " # let mut conn = FtpStream::connect(\"ftp.server.local:21\").unwrap();"]
+    #[doc = " # conn.login(\"test\", \"test\").and_then(|_| {"]
+    #[doc =
+    " #     let mut reader = Cursor::new(\"hello, world!\".as_bytes());"]
+    #[doc = " #     conn.put_file(\"simple_retr.txt\", &mut reader)"]
+    #[doc = " # }).unwrap();"]
+    #[doc =
+    " let cursor = conn.retr_as_buffer(\"simple_retr.txt\").unwrap();"]
+    #[doc = " // do something with bytes"]
+    #[doc = " assert_eq!(cursor.into_inner(), \"hello, world!\".as_bytes());"]
+    #[doc = " # assert!(conn.rm(\"simple_retr.txt\").is_ok());"]
+    #[doc = " ```"]
+    #[doc =
+    " Retrieves the file name specified from the server as a readable stream."]
+    #[doc = " This method is a more complicated way to retrieve a file."]
+    #[doc = " The reader returned should be dropped."]
+    #[doc =
+    " Also you will have to read the response to make sure it has the correct value."]
+    #[doc = " Once file has been read, call `finalize_retr_stream()`"] pub
+    async fn retr_as_stream < S : AsRef < str > > (& mut self, file_name : S)
+    -> FtpResult < DataStreamAsync >
+    {
+        debug! ("Retrieving '{}'", file_name.as_ref()) ; let data_stream =
+        self.data_command(Command :: new_retr(file_name)).await ? ;
+        self.read_response_in(&
+        [Status :: AboutToSend, Status :: AlreadyOpen]).await ? ;
+        Ok(data_stream)
+    }
+    #[doc =
+    " Finalize retr stream; must be called once the requested file, got previously with `retr_as_stream()` has been read"]
+    pub async fn finalize_retr_stream(& mut self, stream : impl ReadAsync) ->
+    FtpResult < () >
+    {
+        debug! ("Finalizing retr stream") ; drop(stream) ; trace!
+        ("dropped stream") ;
+        self.read_response_in(&
+        [Status :: ClosingDataConnection, Status ::
+        RequestedFileActionOk]).await ? ; Ok(())
+    } #[doc = " Removes the remote pathname from the server."] pub async fn
+    rmdir < S : AsRef < str > > (& mut self, pathname : S) -> FtpResult < () >
+    {
+        debug! ("Removing directory {}", pathname.as_ref()) ;
+        self.command(Command :: new_rmd(pathname), &
+        [Status :: RequestedFileActionOk]).await ? ; Ok(())
+    } #[doc = " Remove the remote file from the server."] pub async fn rm < S
+    : AsRef < str > > (& mut self, filename : S) -> FtpResult < () >
+    {
+        debug! ("Removing file {}", filename.as_ref()) ;
+        self.command(Command :: new_dele(filename), &
+        [Status :: RequestedFileActionOk]).await ? ; Ok(())
+    } #[doc = " This stores a file on the server."]
+    #[doc =
+    " r argument must be any struct which implemenents the Read trait."]
+    #[doc = " Returns amount of written bytes"] pub async fn put_file < S, R >
+    (& mut self, filename : S, r : & mut R) -> FtpResult < u64 > where R :
+    ReadAsync + std :: marker :: Unpin, S : AsRef < str >,
+    {
+        let mut data_stream = self.put_with_stream(filename).await ? ; let
+        bytes = copy_async(r, & mut data_stream).await ? ;
+        self.finalize_put_stream(data_stream).await ? ; Ok(bytes)
+    }
+    #[doc =
+    " Send PUT command and returns a BufWriter, which references the file created on the server"]
+    #[doc =
+    " The returned stream must be then correctly manipulated to write the content of the source file to the remote destination"]
+    #[doc = " The stream must be then correctly dropped."]
+    #[doc =
+    " Once you\'ve finished the write, YOU MUST CALL THIS METHOD: `finalize_put_stream`"]
+    pub async fn put_with_stream < S : AsRef < str > >
+    (& mut self, filename : S) -> FtpResult < DataStreamAsync >
+    {
+        debug! ("Put file {}", filename.as_ref()) ; let data_stream =
+        self.data_command(Command :: new_store(filename)).await ? ;
+        self.read_response_in(&
+        [Status :: AlreadyOpen, Status :: AboutToSend]).await ? ;
+        Ok(data_stream)
+    } #[doc = " Finalize put when using stream"]
+    #[doc = " This method must be called once the file has been written and"]
+    #[doc = " `put_with_stream` has been used to write the file"] pub async fn
+    finalize_put_stream(& mut self, stream : impl WriteAsync) -> FtpResult <
+    () >
+    {
+        debug! ("Finalizing put stream") ; drop(stream) ; trace!
+        ("Stream dropped") ;
+        self.read_response_in(&
+        [Status :: ClosingDataConnection, Status ::
+        RequestedFileActionOk]).await ? ; Ok(())
+    }
+    #[doc =
+    " Open specified file for appending data. Returns the stream to append data to specified file."]
+    #[doc =
+    " Once you\'ve finished the write, YOU MUST CALL THIS METHOD: `finalize_put_stream`"]
+    pub async fn append_with_stream < S : AsRef < str > >
+    (& mut self, filename : S) -> FtpResult < DataStreamAsync >
+    {
+        debug! ("Appending to file {}", filename.as_ref()) ; let stream =
+        self.data_command(Command ::
+        Appe(filename.as_ref().to_string())).await ? ;
+        self.read_response_in(&
+        [Status :: AlreadyOpen, Status :: AboutToSend]).await ? ; Ok(stream)
+    } #[doc = " Append data from reader to file at `filename`"] pub async fn
+    append_file < R > (& mut self, filename : & str, r : & mut R) -> FtpResult
+    < u64 > where R : ReadAsync + std :: marker :: Unpin,
+    {
+        let mut data_stream = self.append_with_stream(filename).await ? ; let
+        bytes = copy_async(r, & mut data_stream).await ? ;
+        self.finalize_put_stream(Box :: new(data_stream)).await ? ; Ok(bytes)
+    } #[doc = " abort the previous FTP service command"] pub async fn abort <
+    R > (& mut self, data_stream : R) -> FtpResult < () > where R : ReadAsync
+    + std :: marker :: Unpin,
+    {
+        debug! ("Aborting active file transfer") ;
+        self.perform(Command :: Abor).await ? ; drop(data_stream) ; trace!
+        ("dropped stream") ;
+        self.read_response_in(&
+        [Status :: ClosingDataConnection, Status :: TransferAborted]).await ?
+        ; self.read_response(Status :: ClosingDataConnection).await ? ;
+        self.skip450 = true ; trace! ("Transfer aborted") ; Ok(())
+    }
+    #[doc =
+    " Tell the server to resume the transfer from a certain offset. The offset indicates the amount of bytes to skip"]
+    #[doc = " from the beginning of the file."]
+    #[doc = " the REST command does not actually initiate the transfer."]
+    #[doc =
+    " After issuing a REST command, the client must send the appropriate FTP command to transfer the file"]
+    #[doc = ""]
+    #[doc =
+    " It is possible to cancel the REST command, sending a REST command with offset 0"]
+    pub async fn resume_transfer(& mut self, offset : usize) -> FtpResult < ()
+    >
+    {
+        debug! ("Requesting to resume transfer at offset {}", offset) ;
+        self.command(Command :: Rest(offset), &
+        [Status :: RequestFilePending]).await ? ; debug!
+        ("Resume transfer accepted") ; Ok(())
+    }
+    #[doc =
+    " Execute `LIST` command which returns the detailed file listing in human readable format."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    #[doc = ""] #[doc = " ### Parse result"] #[doc = ""]
+    #[doc = " You can parse the output of this command with"] #[doc = ""]
+    #[doc = " ```rust"] #[doc = ""] #[doc = " use std::str::FromStr;"]
+    #[doc = " use suppaftp::list::File;"] #[doc = ""]
+    #[doc =
+    " let file: File = File::from_str(\"-rw-rw-r-- 1 0  1  8192 Nov 5 2018 omar.txt\")"]
+    #[doc = "     .ok()"] #[doc = "     .unwrap();"] #[doc = " ```"] pub async
+    fn list(& mut self, pathname : Option < & str >) -> FtpResult < Vec <
+    String > >
+    {
+        debug! ("Reading {} directory content", pathname.unwrap_or("working"))
+        ; self.stream_lines(Command :: new_list(pathname)).await
+    }
+    #[doc =
+    " Execute `NLST` command which returns the list of file names only."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    pub async fn nlst(& mut self, pathname : Option < & str >) -> FtpResult <
+    Vec < String > >
+    {
+        debug!
+        ("Getting file names for {} directory", pathname.unwrap_or("working"))
+        ; self.stream_lines(Command :: new_nlst(pathname)).await
+    }
+    #[doc =
+    " Execute `MLST` command which returns the list of file names only."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    pub async fn mlst(& mut self, pathname : Option < & str >) -> FtpResult <
+    String >
+    {
+        let response =
+        self.command(Command :: new_mlst(pathname), &
+        [Status :: RequestedFileActionOk]).await ? ; let mut lines =
+        response.body_into_multiline_result() ? ; if lines.len() != 1
+        { return Err(FtpError :: BadResponse) ; } let line =
+        lines.pop().unwrap() ; Ok(line)
+    } #[doc = " ### mlsd"] #[doc = ""]
+    #[doc =
+    " Execute `MLSD` command which returns the list of file names only."]
+    #[doc =
+    " If `pathname` is omited then the list of files in the current directory will be"]
+    #[doc = " returned otherwise it will the list of files on `pathname`."]
+    pub async fn mlsd(& mut self, pathname : Option < & str >) -> FtpResult <
+    Vec < String > >
+    { self.stream_lines(Command :: new_mlsd(pathname)).await }
+    #[doc =
+    " Retrieves the modification time of the file at `pathname` if it exists."]
+    pub async fn mdtm < S : AsRef < str > > (& mut self, pathname : S) ->
+    FtpResult < DateTime < Utc > >
+    {
+        debug! ("Getting modification time for {}", pathname.as_ref()) ; let
+        response =
+        self.command(Command :: new_mdtm(pathname), & [Status :: File]).await
+        ? ; let line = response.body_as_inline_result() ? ; match
+        MDTM_RE.captures(line)
+        {
+            Some(caps) =>
+            {
+                let(year, month, day) =
+                (caps [1].parse :: < i32 > ().unwrap(), caps [2].parse :: <
+                u32 > ().unwrap(), caps [3].parse :: < u32 > ().unwrap(),) ;
+                let(hour, minute, second) =
+                (caps [4].parse :: < u32 > ().unwrap(), caps [5].parse :: <
+                u32 > ().unwrap(), caps [6].parse :: < u32 > ().unwrap(),) ;
+                Ok(Utc.ymd(year, month, day).and_hms(hour, minute, second))
+            } None => Err(FtpError :: BadResponse),
+        }
+    }
+    #[doc =
+    " Requests the server to list all extension commands, or extended mechanisms, that it supports."]
+    pub async fn feat(& mut self) -> FtpResult < Vec < String > >
+    {
+        debug! ("Feat") ; let response =
+        self.command(Command :: Feat, & [Status :: System]).await ? ;
+        Ok(response.body.into_vec())
+    }
+    #[doc =
+    " Requests the server to list all extension commands, or extended mechanisms, that it supports."]
+    pub async fn opts < S : AsRef < str > >
+    (& mut self, cmd : S, cmd_options : Option < S >) -> FtpResult < String >
+    {
+        debug! ("Opts '{}' '{}'", cmd.as_ref(), optstrref(& cmd_options)) ;
+        let response =
+        self.command(Command :: new_opts(cmd, cmd_options), &
+        [Status :: CommandOk]).await ? ; response.body_into_inline_result()
+    }
+    #[doc =
+    " Requests the server to list all extension commands, or extended mechanisms, that it supports."]
+    pub async fn lang < S : AsRef < str > >
+    (& mut self, lang_tag : Option < S >) -> FtpResult < String >
+    {
+        debug! ("Lang '{}'", optstrref(& lang_tag)) ; let response =
+        self.command(Command :: new_lang(lang_tag), &
+        [Status :: CommandOk]).await ? ; response.body_into_inline_result()
+    }
+    #[doc =
+    " Retrieves the size of the file in bytes at `pathname` if it exists."]
+    pub async fn site < S : AsRef < str > > (& mut self, cmd : S) -> FtpResult
+    < String >
+    {
+        debug! ("SITE '{}'", cmd.as_ref()) ; let response =
+        self.command(Command :: new_site(cmd), & [Status :: CommandOk]).await
+        ? ; response.body_into_inline_result()
+    }
+    #[doc =
+    " Returns information on the server status, including the status of the current connection"]
+    pub async fn stat < S : AsRef < str > > (& mut self, path : Option < S >)
+    -> FtpResult < Vec < String > >
+    {
+        debug! ("Stat '{}'", optstrref(& path)) ; let response =
+        self.command(Command :: new_stat(path), &
+        [Status :: System, Status :: Directory, Status :: File]).await ? ;
+        Ok(response.body.into_vec())
+    }
+    #[doc =
+    " Retrieves the size of the file in bytes at `pathname` if it exists."]
+    pub async fn size < S : AsRef < str > > (& mut self, pathname : S) ->
+    FtpResult < usize >
+    {
+        debug! ("Getting file size for {}", pathname.as_ref()) ; let response
+        =
+        self.command(Command :: new_size(pathname), & [Status :: File]).await
+        ? ; let line = response.body_as_inline_result() ? ; match
+        SIZE_RE.captures(line)
+        {
+            Some(caps) => Ok(caps [1].parse().unwrap()), None =>
+            Err(FtpError :: BadResponse),
+        }
+    } #[doc = " Retrieve stream \"message\""] async fn
+    get_lines_from_stream(data_stream : & mut BufReaderAsync < DataStreamAsync
+    >) -> FtpResult < Vec < String > >
+    {
+        let mut lines : Vec < String > = Vec :: new() ; loop
+        {
+            let mut line = String :: new() ; match
+            data_stream.read_line(& mut line).await
+            {
+                Ok(0) => break, Ok(_) =>
+                {
+                    if line.ends_with('\n')
+                    { line.pop() ; if line.ends_with('\r') { line.pop() ; } } if
+                    line.is_empty() { continue ; } lines.push(line) ;
+                } Err(_) => return Err(FtpError :: BadResponse),
+            }
+        } trace! ("Lines from stream {:?}", lines) ; Ok(lines)
+    } #[doc = " Read response from stream"] async fn
+    read_response(& mut self, expected_code : Status) -> FtpResult < Response
+    > { self.read_response_in(& [expected_code]).await }
+    #[doc = " Retrieve single line response"] async fn
+    read_response_in(& mut self, expected_status : & [Status]) -> FtpResult <
+    Response >
+    {
+        let mut line_buffer = String :: new() ; let mut line =
+        self.read_line(& mut line_buffer).await ? ; trace!
+        ("CC IN: {}", line.trim_end()) ; if line.len() < CODE_LENGTH + 1
+        { return Err(FtpError :: BadResponse) ; }
+        let(mut status, mut delim, mut head) = parse_status_delim_tail(line) ?
+        ; if self.skip450
+        {
+            self.skip450 = false ; if status == Status ::
+            RequestFileActionIgnored
+            {
+                line = self.read_line(& mut line_buffer).await ? ; trace!
+                ("CC IN: {}", line.trim_end()) ; if line.len() < CODE_LENGTH +
+                1 { return Err(FtpError :: BadResponse) ; }
+                (status, delim, head) = parse_status_delim_tail(line) ? ;
+            }
+        } let response = match delim
+        {
+            SPACE_CHAR => { Response :: new_inline(status, head) }, MINUS_CHAR
+            =>
+            {
+                let mut body : Vec < String > = vec! [] ; loop
+                {
+                    line = self.read_line(& mut line_buffer).await ? ; trace!
+                    ("CC IN: {}", line) ; let first_char =
+                    line.chars().nth(0).ok_or_else(| | FtpError :: BadResponse)
+                    ? ; match first_char
+                    {
+                        SPACE_CHAR => { body.push(line [1 ..].to_string()) }, ch if
+                        ch.is_ascii_digit() =>
+                        {
+                            let(status2, delim, tail) = parse_status_delim_tail(line) ?
+                            ; if status2 != status || delim != SPACE_CHAR
+                            { return Err(FtpError :: BadResponse) ; } ; break Response
+                            :: new_multiline(status, head, body, tail) ;
+                        }, _ => { return Err(FtpError :: BadResponse) ; }
+                    }
+                }
+            }, _ => { return Err(FtpError :: BadResponse) ; }
+        } ; if expected_status.contains(& status) { Ok(response) } else
+        {
+            let err = match status
+            {
+                Status :: BadCommand | Status :: NotImplemented | Status ::
+                BadSequence =>
+                {
+                    FtpError :: BadCommand
+                    { status, message : response.body_into_inline_result() ? }
+                }, Status :: BadArguments | Status :: NotImplementedParameter
+                =>
+                {
+                    FtpError :: BadParameter
+                    { status, message : response.body_into_inline_result() ? }
+                }, _ => { FtpError :: UnexpectedResponse(response) }
+            } ; Err(err)
+        }
+    } #[doc = " Write data to stream with command to perform"] async fn
+    perform(& mut self, command : Command) -> FtpResult < () >
+    {
+        let command = command.to_string() ; trace!
+        ("CC OUT: {}", command.trim_end_matches("\r\n")) ; let stream =
+        self.reader.get_mut() ; stream.write_all(command.as_bytes()).await ? ;
+        Ok(())
+    } #[doc = " Execute command which send data back in a command stream"] pub
+    async fn
+    command(& mut self, command : Command, expected_code : & [Status]) ->
+    FtpResult < Response >
+    {
+        self.perform(command).await ? ;
+        self.read_response_in(expected_code).await
+    } #[doc = " Execute command which send data back in a separate stream"]
+    async fn data_command(& mut self, cmd : Command) -> FtpResult <
+    DataStreamAsync >
+    {
+        let stream = match self.mode
+        {
+            Mode :: Passive =>
+            {
+                let addr = self.pasv().await ? ; self.perform(cmd).await ? ;
+                TcpStreamAsync :: connect(addr).await ?
+            }, Mode :: Active =>
+            {
+                let listener = self.active().await ? ; self.perform(cmd).await
+                ? ; let(stream, _) = listener.accept().await ? ; stream
+            }
+        } ; #[cfg(feature = "async-secure")]
+        {
+            match self.tls_ctx
+            {
+                Some(ref tls_ctx) =>
+                {
+                    let tls_stream =
+                    tls_ctx.tls_connector.connect(tls_ctx.domain.as_str(),
+                    stream).await ? ;
+                    Ok(DataStreamAsync :: Tls(tls_stream.into()))
+                }, None => { Ok(DataStreamAsync :: Tcp(stream)) },
+            }
+        } #[cfg(not(feature = "async-secure"))]
+        { Ok(DataStreamAsync :: Tcp(stream)) }
+    } #[doc = " Create a new tcp listener and send a PORT command for it"]
+    async fn active(& mut self) -> FtpResult < TcpListenerAsync >
+    {
+        debug! ("Starting local tcp listener...") ; let listener =
+        TcpListenerAsync :: bind("0.0.0.0:0").await ? ; let addr =
+        listener.local_addr() ? ; trace! ("Local address is {}", addr) ; let
+        tcp_stream = match self.reader.get_ref()
+        {
+            DataStreamAsync :: Tcp(stream) => stream,
+            #[cfg(feature = "async-secure")] DataStreamAsync :: Tls(stream) =>
+            stream.get_ref(),
+        } ; let ip = tcp_stream.local_addr().unwrap().ip() ; let msb =
+        addr.port() / 256 ; let lsb = addr.port() % 256 ; let ip_port =
+        format! ("{},{},{}", ip.to_string().replace(".", ","), msb, lsb) ;
+        debug! ("Active mode, listening on {}:{}", ip, addr.port()) ; debug!
+        ("Running PORT command") ;
+        self.command(Command :: Port(ip_port), & [Status :: CommandOk]).await
+        ? ; Ok(listener)
+    } #[doc = " Runs the PASV command."] async fn pasv(& mut self) ->
+    FtpResult < SocketAddrAsync >
+    {
+        debug! ("PASV command") ; let response =
+        self.command(Command :: Pasv, & [Status :: PassiveMode]).await ? ; let
+        body = response.body_as_inline_result() ? ; let caps =
+        PORT_RE.captures(body).ok_or_else(| | FtpError ::
+        UnexpectedResponse(response.clone())) ? ; let(oct1, oct2, oct3, oct4)
+        =
+        (caps [1].parse :: < u8 > ().unwrap(), caps [2].parse :: < u8 >
+        ().unwrap(), caps [3].parse :: < u8 > ().unwrap(), caps [4].parse :: <
+        u8 > ().unwrap(),) ; let(msb, lsb) =
+        (caps [5].parse :: < u8 > ().unwrap(), caps [6].parse :: < u8 >
+        ().unwrap(),) ; let port = ((msb as u16) << 8) + lsb as u16 ; let addr
+        = format! ("{}.{}.{}.{}:{}", oct1, oct2, oct3, oct4, port) ; trace!
+        ("Passive address: {}", addr) ; let addr = SocketAddrAsync ::
+        from_str(& addr) ? ; Ok(addr)
+    } async fn read_line < 's > (& mut self, line_buffer : & 's mut String) ->
+    FtpResult < & 's str >
+    {
+        line_buffer.clear() ; match self.reader.read_line(line_buffer).await
+        {
+            Ok(size) =>
+            {
+                if size == 0
+                {
+                    debug! ("ERR read_line: EOF") ; return
+                    Err(FtpError :: BadResponse) ;
+                }
+            }, Err(e) =>
+            { debug! ("ERR read_line: {:?}", e) ; return Err(e.into()) },
+        } ; let line =
+        line_buffer.trim_end_matches(| ch | ch == '\r' || ch == '\n') ;
+        Ok(line)
+    }
+    #[doc =
+    " Execute a command which returns list of strings in a separate stream"]
+    async fn stream_lines(& mut self, cmd : Command) -> FtpResult < Vec <
+    String > >
+    {
+        let mut data_stream = BufReaderAsync ::
+        new(self.data_command(cmd).await ?) ;
+        self.read_response_in(&
+        [Status :: AboutToSend, Status :: AlreadyOpen]).await ? ; let lines =
+        Self :: get_lines_from_stream(& mut data_stream).await ;
+        self.finalize_retr_stream(data_stream).await ? ; lines
+    }
+}
+-^--------------------------------------------------------
