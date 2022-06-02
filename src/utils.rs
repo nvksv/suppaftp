@@ -19,10 +19,10 @@ lazy_static! {
 pub fn parse_status_delim_tail( line: &str ) -> FtpResult<(Status, char, String)> {
     let mut line_iter = line.char_indices();
     
-    let (code_len, delim) = line_iter.nth(CODE_LENGTH).ok_or_else(|| FtpError::BadResponse)?;
-    let (tail_off, _) = line_iter.nth(0).ok_or_else(|| FtpError::BadResponse)?;
+    let (code_len, delim) = line_iter.nth(CODE_LENGTH).ok_or_else(|| {debug!("parse_status_delim_tail failed 1"); FtpError::BadResponse})?;
+    let (tail_off, _) = line_iter.nth(0).ok_or_else(|| {debug!("parse_status_delim_tail failed 2"); FtpError::BadResponse})?;
 
-    let code: u32 = line[..code_len].parse().map_err(|_| FtpError::BadResponse)?;
+    let code: u32 = line[..code_len].parse().map_err(|err| {debug!("parse_status_delim_tail failed 3: {}", err); FtpError::BadResponse})?;
     let tail: String = line[tail_off..].trim_end().to_string(); 
 
     Ok((code.into(), delim, tail))

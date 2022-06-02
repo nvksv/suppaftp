@@ -17,17 +17,20 @@ maybe_async::content! {
         TcpListener(use), 
         TcpStream(use),
         TlsConnector(use),
-        Cursor,
+        Cursor(use),
         DataStream,
         TlsCtx,
         FtpStream,
+        FtpStreamInternals,
         test_setup_stream(fn),
         test_finalize_stream(fn),
         test_tls_connector(fn),
     )
 )]
 
+mod tls_stream;
 mod data_stream;
+use super::utils::*;
 
 use super::types::{FileType, FtpError, FtpResult, Mode, Response};
 use super::Status;
@@ -35,7 +38,6 @@ use super::Status;
 use crate::command::Command;
 #[cfg(feature = "_secure")]
 use crate::command::ProtectionLevel;
-use super::utils::*;
 
 //#[cfg(feature = "support-ftpclient")]
 //use crate::callbacks::{FtpClient};
@@ -71,16 +73,45 @@ pub struct TlsCtx {
     pub domain: String,
 }
 
+#[maybe_async::maybe(
+    sync(feature="sync", replace_feature("_secure", "sync-secure")), 
+    async(feature="async", replace_feature("_secure", "async-secure")), 
+)]
+#[derive(Debug)]
+pub struct FtpStreamInternals {
+    skip450: bool,
+}
+
+#[maybe_async::maybe(
+    sync(feature="sync", replace_feature("_secure", "sync-secure")), 
+    async(feature="async", replace_feature("_secure", "async-secure")), 
+)]
+impl FtpStreamInternals {
+    fn new() -> Self {
+        Self {
+            skip450: false,
+        }
+    }
+
+    fn take_skip_450(&mut self) -> bool {
+        std::mem::replace(&mut self.skip450, false)
+    }
+
+    fn set_skip_450(&mut self) {
+        self.skip450 = true;
+    }
+}
+
 /// Stream to interface with the FTP server. This interface is only for the command stream.
 #[maybe_async::maybe(
-    sync(feature="sync", replace_features(_secure = "sync-secure")), 
-    async(feature="async", replace_features(_secure = "async-secure")), 
+    sync(feature="sync", replace_feature("_secure", "sync-secure")), 
+    async(feature="async", replace_feature("_secure", "async-secure")), 
 )]
 #[derive(Debug)]
 pub struct FtpStream {
+    internals: FtpStreamInternals,
     reader: BufReader<DataStream>,
     mode: Mode,
-    skip450: bool,
     #[cfg(feature = "_secure")]
     tls_ctx: Option<TlsCtx>,
     #[cfg(feature = "_with-welcome-msg")]
@@ -90,8 +121,8 @@ pub struct FtpStream {
 }
 
 #[maybe_async::maybe(
-    sync(feature="sync", replace_features(_secure = "sync-secure")), 
-    async(feature="async", replace_features(_secure = "async-secure")), 
+    sync(feature="sync", replace_feature("_secure", "sync-secure")), 
+    async(feature="async", replace_feature("_secure", "async-secure")), 
 )]
 impl FtpStream {
     /// Creates an FTP Stream.
@@ -102,9 +133,9 @@ impl FtpStream {
         debug!("Established connection with server");
 
         let mut ftp_stream = Self {
+            internals: FtpStreamInternals::new(),
             reader: BufReader::new(DataStream::Tcp(stream)),
             mode: Mode::Passive,
-            skip450: false,
             #[cfg(feature = "_secure")]
             tls_ctx: None,
             #[cfg(feature = "_with-welcome-msg")]
@@ -183,9 +214,9 @@ impl FtpStream {
         debug!("TLS stream OK");
 
         let mut secured_ftp_stream = Self {
+            internals: FtpStreamInternals::new(),
             reader: BufReader::new(DataStream::Tls(stream.into())),
             mode: self.mode,
-            skip450: false,
             tls_ctx: Some(TlsCtx{ tls_connector, domain: domain.into() }),
             #[cfg(feature = "_with-welcome-msg")]
             welcome_msg: self.welcome_msg,
@@ -471,10 +502,10 @@ impl FtpStream {
         drop(data_stream);
         trace!("dropped stream");
         self.read_response_in(&[Status::ClosingDataConnection, Status::TransferAborted]).await?;
-        self.read_response(Status::ClosingDataConnection).await?;
+        self.read_response_in(&[Status::ClosingDataConnection, Status::TransferAborted]).await?;
 
         // Sometimes ProFTPd sends three lines, so we must to skip the last one "450 Transfer aborted. Link to file server lost"
-        self.skip450 = true;
+        self.internals.set_skip_450();
 
         trace!("Transfer aborted");
         Ok(())
@@ -655,10 +686,10 @@ impl FtpStream {
         Ok(lines)
     }
 
-    /// Read response from stream
-    async fn read_response(&mut self, expected_code: Status) -> FtpResult<Response> {
-        self.read_response_in(&[expected_code]).await
-    }
+    // /// Read response from stream
+    // async fn read_response(&mut self, expected_code: Status) -> FtpResult<Response> {
+    //     self.read_response_in(&[expected_code]).await
+    // }
 
     /// Retrieve single line response
     async fn read_response_in(&mut self, expected_status: &[Status]) -> FtpResult<Response> {
@@ -668,14 +699,13 @@ impl FtpStream {
         trace!("CC IN: {}", line.trim_end());
 
         if line.len() < CODE_LENGTH+1 {
+            debug!("Response line too short: \"{}\"", line);
             return Err(FtpError::BadResponse);
         }
 
         let (mut status, mut delim, mut head) = parse_status_delim_tail(line)?;
 
-        if self.skip450 {
-            self.skip450 = false;
-
+        if self.internals.take_skip_450() {
             if status == Status::RequestFileActionIgnored {
                 // Skip this status and retrieve next line
 
@@ -684,6 +714,7 @@ impl FtpStream {
                 trace!("CC IN: {}", line.trim_end());
         
                 if line.len() < CODE_LENGTH+1 {
+                    debug!("Response line too short: \"{}\"", line);
                     return Err(FtpError::BadResponse);
                 }
 
@@ -717,6 +748,7 @@ impl FtpStream {
                             break Response::new_multiline( status, head, body, tail );
                         },
                         _ => {
+                            debug!("Bad first char of response line: \"{}\"", line);
                             return Err(FtpError::BadResponse);
                         }
                     }
@@ -724,6 +756,7 @@ impl FtpStream {
                 }
             },
             _ => {
+                debug!("Bad delimitier of response line: \"{}\"", line);
                 return Err(FtpError::BadResponse);
             }
         };
@@ -740,6 +773,7 @@ impl FtpStream {
                     FtpError::BadParameter{ status, message: response.body_into_inline_result()? }
                 },
                 _ => {
+                    debug!("Bad status: {:?}", status);
                     FtpError::UnexpectedResponse(response)
                 }
             };
@@ -899,19 +933,19 @@ mod test {
 
     use serial_test::serial;
 
-    #[cfg(feature = "async")]
-    use async_std::io::Cursor as CursorAsync;
-    #[cfg(feature = "sync")]
-    use std::io::Cursor as CursorSync;
+    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    use async_std::io::Cursor;
 
-    #[cfg(feature = "async-secure")]
-    fn test_tls_connector_async() -> TlsConnectorAsync {
-        TlsConnectorAsync::new()
+    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    #[maybe_async::only_if(async)]
+    fn test_tls_connector() -> TlsConnector {
+        TlsConnector::new()
     }
 
-    #[cfg(feature = "sync-secure")]
-    fn test_tls_connector_sync() -> TlsConnectorSync {
-        TlsConnectorSync::new().unwrap()
+    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    #[maybe_async::only_if(sync)]
+    fn test_tls_connector() -> TlsConnector {
+        TlsConnector::new().unwrap()
     }
 
     #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]

@@ -260,6 +260,7 @@ impl Response {
                 }
             },
             _ => {
+                debug!("Unexpected response: {}", self);
                 Err(FtpError::UnexpectedResponse(self))
             }
         }

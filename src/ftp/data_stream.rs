@@ -15,11 +15,13 @@ maybe_async::content! {
         TlsStream(use),
         DataStream,
         DataStreamProj,
+        TlsStreamWrapper,
+        TlsStreamWrapperProj,
     ),
 )]
 
 #[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
-use async_native_tls::TlsStream;
+use super::tls_stream::TlsStreamWrapper;
 
 #[maybe_async::maybe(sync(feature = "sync"), async(feature = "async"))]
 use async_std::{
@@ -34,53 +36,31 @@ use std::pin::Pin;
 
 
 /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Tls in case of FTPS
-#[cfg(feature = "async")]
-#[pin_project(project = DataStreamProjAsync)]
+#[maybe_async::maybe(
+    sync(feature = "sync", replace_feature("_secure", "sync-secure"), drop_attrs(pin)), 
+    async(feature = "async", replace_feature("_secure", "async-secure"), inner("pin_project(project = DataStreamProjAsync)")),
+)]
 #[derive(Debug)]
-pub enum DataStreamAsync {
-    Tcp(#[pin] TcpStreamAsync),
-    #[cfg(feature = "async-secure")]
-    Tls(#[pin] TlsStreamAsync<TcpStreamAsync>),
-}
-
-/// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Tls in case of FTPS
-#[cfg(feature = "sync")]
-#[derive(Debug)]
-pub enum DataStreamSync {
-    Tcp(TcpStreamSync),
-    #[cfg(feature = "sync-secure")]
-    Tls(TlsStreamWrapperSync),
-}
-
-#[cfg(feature = "async")]
-impl DataStreamAsync {
-    /// Unwrap the stream into TcpStream. This method is only used in secure connection.
-    pub fn into_tcp_stream(self) -> TcpStreamAsync {
-        match self {
-            DataStreamAsync::Tcp(stream) => stream,
-            #[cfg(feature = "async-secure")]
-            DataStreamAsync::Tls(stream) => stream.get_ref().clone(),
-        }
-    }
-}
-
-#[cfg(feature = "sync")]
-impl DataStreamSync {
-    /// Unwrap the stream into TcpStream. This method is only used in secure connection.
-    pub fn into_tcp_stream(self) -> TcpStreamSync {
-        match self {
-            DataStreamSync::Tcp(stream) => stream,
-            #[cfg(feature = "sync-secure")]
-            DataStreamSync::Tls(stream) => stream.tcp_stream(),
-        }
-    }
+pub enum DataStream {
+    Tcp(#[pin] TcpStream),
+    #[cfg(feature = "_secure")]
+    Tls(#[pin] TlsStreamWrapper),
 }
 
 #[maybe_async::maybe(
-    sync(feature="sync", replace_features(_secure = "sync-secure")), 
-    async(feature="async", replace_features(_secure = "async-secure")), 
+    sync(feature = "sync", replace_feature("_secure", "sync-secure")), 
+    async(feature = "async", replace_feature("_secure", "async-secure")),
 )]
 impl DataStream {
+    /// Unwrap the stream into TcpStream. This method is only used in secure connection.
+    pub fn into_tcp_stream(self) -> TcpStream {
+        match self {
+            DataStream::Tcp(stream) => stream,
+            #[cfg(feature = "_secure")]
+            DataStream::Tls(stream) => stream.tcp_stream(),
+        }
+    }
+
     /// Returns a reference to the underlying TcpStream.
     pub fn get_ref(&self) -> &TcpStream {
         match self {
@@ -94,27 +74,24 @@ impl DataStream {
 
 // -- sync
 
-#[maybe_async::maybe(
-    sync(feature="sync", replace_features(_secure = "sync-secure")), 
-    idents(DataStream, DataStreamProj, TcpStream, TlsStream, Read, Result),
-)]
+#[maybe_async::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
 impl Read for DataStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         match self {
             DataStream::Tcp(ref mut stream) => stream.read(buf),
             #[cfg(feature = "_secure")]
-            DataStream::Tls(ref mut stream) => stream.mut_ref().read(buf),
+            DataStream::Tls(ref mut stream) => stream.read(buf),
         }
     }
 }
 
-#[maybe_async::maybe(sync(feature="sync", replace_features(_secure = "sync-secure")))]
+#[maybe_async::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
 impl Write for DataStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         match self {
             DataStream::Tcp(ref mut stream) => stream.write(buf),
             #[cfg(feature = "_secure")]
-            DataStream::Tls(ref mut stream) => stream.mut_ref().write(buf),
+            DataStream::Tls(ref mut stream) => stream.write(buf),
         }
     }
 
@@ -122,89 +99,14 @@ impl Write for DataStream {
         match self {
             DataStream::Tcp(ref mut stream) => stream.flush(),
             #[cfg(feature = "_secure")]
-            DataStream::Tls(ref mut stream) => stream.mut_ref().flush(),
+            DataStream::Tls(ref mut stream) => stream.flush(),
         }
     }
 }
 
-// -- tls stream wrapper to implement drop...
+// -- sync
 
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
-#[derive(Debug)]
-/// Tls stream wrapper. This type is a garbage data type used to impl the drop trait for the tls stream.
-/// This allows me to keep returning `Read` and `Write` traits in stream methods
-pub struct TlsStreamWrapper {
-    stream: TlsStream<TcpStream>,
-    #[cfg(feature = "sync-secure")]
-    tls_shutdown: bool,
-}
-
-
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
-impl TlsStreamWrapper {
-    /// Get underlying tcp stream
-    #[maybe_async::only_if(sync)]
-    pub(crate) fn tcp_stream(mut self) -> TcpStream {
-        let mut stream = self.stream.get_ref().try_clone().unwrap();
-
-        // Don't perform shutdown later
-        self.tls_shutdown = false;
-        // flush stream (otherwise can cause bad chars on channel)
-        if let Err(err) = stream.flush() {
-            error!("Error in flushing tcp stream: {}", err);
-        }
-        trace!("TLS stream terminated");
-        stream
-    }
-
-    /// Get underlying tcp stream
-    #[maybe_async::only_if(async)]
-    pub(crate) fn tcp_stream(mut self) -> TcpStream {
-        let mut stream = self.stream.get_ref().clone();
-        stream
-    }
-
-    /// Get ref to underlying tcp stream
-    pub(crate) fn get_ref(&self) -> &TcpStream {
-        self.stream.get_ref()
-    }
-
-    /// Get mutable reference to tls stream
-    pub(crate) fn mut_ref(&mut self) -> &mut TlsStream<TcpStream> {
-        &mut self.stream
-    }
-}
-
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
-impl From<TlsStream<TcpStream>> for TlsStreamWrapper {
-    fn from(stream: TlsStream<TcpStream>) -> Self {
-        Self {
-            stream,
-            #[cfg(feature = "sync-secure")]
-            tls_shutdown: true,
-        }
-    }
-}
-
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
-#[maybe_async::only_if(sync)]
-impl Drop for TlsStreamWrapper {
-    fn drop(&mut self) {
-        if self.tls_shutdown {
-            if let Err(err) = self.stream.shutdown() {
-                error!("Failed to shutdown stream: {}", err);
-            } else {
-                debug!("TLS Stream shut down");
-            }
-        }
-    }
-}
-
-
-
-// -- async
-
-#[maybe_async::maybe(async(feature="async", replace_features(_secure = "async-secure")))]
+#[maybe_async::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
 impl Read for DataStream {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -219,7 +121,7 @@ impl Read for DataStream {
     }
 }
 
-#[maybe_async::maybe(async(feature="async", replace_features(_secure = "async-secure")))]
+#[maybe_async::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
 impl Write for DataStream {
     fn poll_write(
         self: Pin<&mut Self>,
