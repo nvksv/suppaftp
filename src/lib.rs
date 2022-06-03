@@ -68,22 +68,22 @@
 //!
 //! ### FTPS Usage
 //!
-//! ```rust
-//! # #[cfg(feature = "sync-secure")] {
-//! use suppaftp::FtpStream;
-//! use native_tls::{TlsConnector, TlsStream};
-//!
-//! let ftp_stream = FtpStream::connect("ftp.server.local:21").unwrap();
-//! // Switch to the secure mode
-//! let mut ftp_stream = ftp_stream.into_secure(TlsConnector::new().unwrap(), "test.rebex.net").unwrap();
-//! ftp_stream.login("demo", "password").unwrap();
-//! // Do other secret stuff
-//! // Switch back to the insecure mode (if required)
-//! let mut ftp_stream = ftp_stream.into_insecure().unwrap();
-//! // Do all public stuff
-//! assert!(ftp_stream.quit().is_ok());
-//! # }
-//! ```
+#![cfg_attr(feature = "sync-secure", doc = r##"
+```rust
+use suppaftp::sync_ftp::FtpStream;
+use native_tls::{TlsConnector, TlsStream};
+
+let ftp_stream = FtpStream::connect("test.rebex.net").unwrap();
+// Switch to the secure mode
+let mut ftp_stream = ftp_stream.into_secure(TlsConnector::new().unwrap(), "test.rebex.net").unwrap();
+ftp_stream.login("demo", "password").unwrap();
+// Do other secret stuff
+// Switch back to the insecure mode (if required)
+let mut ftp_stream = ftp_stream.clear_command_channel().unwrap();
+// Do all public stuff
+assert!(ftp_stream.quit().is_ok());
+```
+"##)]
 //!
 //! ## Going async
 //!
