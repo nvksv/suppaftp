@@ -144,7 +144,7 @@ use suppaftp::FtpStream;
 
 fn main() {
     // Create a connection to an FTP server and authenticate to it.
-    let mut ftp_stream = FtpStream::connect("ftp.server.local:21").unwrap();
+    let mut ftp_stream = FtpStream::connect("ftp.server.local").unwrap();
     let _ = ftp_stream.login("username", "password").unwrap();
 
     // Get the current directory that the client will be reading from and writing to.
@@ -172,7 +172,7 @@ fn main() {
 ```rust
 use suppaftp::FtpStream;
 use suppaftp::async_native_tls::{TlsConnector, TlsStream};
-let ftp_stream = FtpStream::connect("test.rebex.net:21").await.unwrap();
+let ftp_stream = FtpStream::connect("test.rebex.net").await.unwrap();
 // Switch to the secure mode
 let mut ftp_stream = ftp_stream.into_secure(TlsConnector::new(), "test.rebex.net").await.unwrap();
 ftp_stream.login("demo", "password").await.unwrap();

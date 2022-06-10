@@ -3,3 +3,6 @@
 /.vscode
 /Cargo.lock
 *.swp
+
+/.*
+!/.gitignore

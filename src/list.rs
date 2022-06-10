@@ -17,7 +17,7 @@
 //! use suppaftp::{FtpStream, list::File};
 //!
 //! // Connect to the server
-//! let mut ftp_stream = FtpStream::connect("ftp.server.local:21").unwrap_or_else(|err|
+//! let mut ftp_stream = FtpStream::connect("ftp.server.local").unwrap_or_else(|err|
 //!     panic!("{}", err)
 //! );
 //!

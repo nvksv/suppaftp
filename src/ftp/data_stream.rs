@@ -2,9 +2,9 @@
 //!
 //! This module exposes the async data stream implementation where bytes must be written to/read from
 
-maybe_async::content! {
+maybe_async_cfg::content! {
 
-#![maybe_async::default(
+#![maybe_async_cfg::default(
     idents(
         async_native_tls(sync="native_tls", async), 
         async_std(sync="std", async), 
@@ -20,10 +20,10 @@ maybe_async::content! {
     ),
 )]
 
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
+#[maybe_async_cfg::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
 use super::tls_stream::TlsStreamWrapper;
 
-#[maybe_async::maybe(sync(feature = "sync"), async(feature = "async"))]
+#[maybe_async_cfg::maybe(sync(feature = "sync"), async(feature = "async"))]
 use async_std::{
     io::{Read, Result, Write},
     net::TcpStream
@@ -36,7 +36,7 @@ use std::pin::Pin;
 
 
 /// Data Stream used for communications. It can be both of type Tcp in case of plain communication or Tls in case of FTPS
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature = "sync", replace_feature("_secure", "sync-secure"), drop_attrs(pin)), 
     async(feature = "async", replace_feature("_secure", "async-secure"), inner("pin_project(project = DataStreamProjAsync)")),
 )]
@@ -47,7 +47,7 @@ pub enum DataStream {
     Tls(#[pin] TlsStreamWrapper),
 }
 
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature = "sync", replace_feature("_secure", "sync-secure")), 
     async(feature = "async", replace_feature("_secure", "async-secure")),
 )]
@@ -74,7 +74,7 @@ impl DataStream {
 
 // -- sync
 
-#[maybe_async::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
+#[maybe_async_cfg::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
 impl Read for DataStream {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         match self {
@@ -85,7 +85,7 @@ impl Read for DataStream {
     }
 }
 
-#[maybe_async::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
+#[maybe_async_cfg::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
 impl Write for DataStream {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         match self {
@@ -106,7 +106,7 @@ impl Write for DataStream {
 
 // -- sync
 
-#[maybe_async::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
+#[maybe_async_cfg::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
 impl Read for DataStream {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -121,7 +121,7 @@ impl Read for DataStream {
     }
 }
 
-#[maybe_async::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
+#[maybe_async_cfg::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
 impl Write for DataStream {
     fn poll_write(
         self: Pin<&mut Self>,

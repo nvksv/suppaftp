@@ -2,12 +2,13 @@
 //!
 //! This module contains the definition for all async implementation of suppaftp
 
-maybe_async::content! {
+maybe_async_cfg::content! {
 
-#![maybe_async::default(
+#![maybe_async_cfg::default(
     idents(
         async_native_tls(sync="native_tls", async), 
         async_std(sync="std", async), 
+        ToSocketAddrsWithDefaultPort(sync, async="ToSocketAddrsWithDefaultPortAsync"),
         copy(fn, use), 
         BufReader(use), 
         Read(use), 
@@ -42,17 +43,20 @@ use crate::command::ProtectionLevel;
 //#[cfg(feature = "support-ftpclient")]
 //use crate::callbacks::{FtpClient};
 
-#[maybe_async::maybe(sync(feature = "sync"), async(feature = "async"))]
+#[maybe_async_cfg::maybe(sync(feature = "sync"), async(feature = "async"))]
 use data_stream::DataStream;
 
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
+#[maybe_async_cfg::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
 use async_native_tls::TlsConnector;
 
-#[maybe_async::maybe(sync(feature = "sync"), async(feature = "async"))]
+#[maybe_async_cfg::maybe(sync(feature = "sync"), async(feature = "async"))]
 use async_std::{
     io::{copy, BufReader, Read, Write},
-    net::{ToSocketAddrs, SocketAddr, TcpListener, TcpStream},
+    net::{SocketAddr, TcpListener, TcpStream},
 };
+
+#[maybe_async_cfg::maybe(sync(feature = "sync"), async(feature = "async"))]
+use to_socket_addrs::ToSocketAddrsWithDefaultPort;
 
 #[cfg(feature = "sync")]
 use std::io::BufRead;
@@ -66,14 +70,14 @@ use std::str::FromStr;
 use std::string::String;
 
 /// Some data for TLS mode
-#[maybe_async::maybe(sync(feature="sync-secure"), async(feature="async-secure"))]
+#[maybe_async_cfg::maybe(sync(feature="sync-secure"), async(feature="async-secure"))]
 #[derive(Debug)]
 pub struct TlsCtx {
     pub tls_connector: TlsConnector,
     pub domain: String,
 }
 
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature="sync", replace_feature("_secure", "sync-secure")), 
     async(feature="async", replace_feature("_secure", "async-secure")), 
 )]
@@ -82,7 +86,7 @@ pub struct FtpStreamInternals {
     skip450: bool,
 }
 
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature="sync", replace_feature("_secure", "sync-secure")), 
     async(feature="async", replace_feature("_secure", "async-secure")), 
 )]
@@ -103,7 +107,7 @@ impl FtpStreamInternals {
 }
 
 /// Stream to interface with the FTP server. This interface is only for the command stream.
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature="sync", replace_feature("_secure", "sync-secure")), 
     async(feature="async", replace_feature("_secure", "async-secure")), 
 )]
@@ -120,16 +124,16 @@ pub struct FtpStream {
     // callbacks: FtpStreamCallbacksRef,
 }
 
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature="sync", replace_feature("_secure", "sync-secure")), 
     async(feature="async", replace_feature("_secure", "async-secure")), 
 )]
 impl FtpStream {
     /// Creates an FTP Stream.
-    pub async fn connect<A: ToSocketAddrs, #[cfg(feature = "support-ftpclient")] Client: FtpClient>(addr: A) -> FtpResult<Self> {
+    pub async fn connect<A: ToSocketAddrsWithDefaultPort, #[cfg(feature = "support-ftpclient")] Client: FtpClient>(addr: A) -> FtpResult<Self> {
         debug!("Connecting to server");
 
-        let stream = TcpStream::connect(addr).await?;
+        let stream = TcpStream::connect(addr.with_default_port(21)).await?;
         debug!("Established connection with server");
 
         let mut ftp_stream = Self {
@@ -192,7 +196,7 @@ impl FtpStream {
     /// // Create a TlsConnector
     /// // NOTE: For custom options see <https://docs.rs/native-tls/0.2.6/native_tls/struct.TlsConnectorBuilder.html>
     /// let mut ctx = TlsConnector::new();
-    /// let mut ftp_stream = FtpStream::connect("ftp.server.local:21").await.unwrap();
+    /// let mut ftp_stream = FtpStream::connect("ftp.server.local").await.unwrap();
     /// let mut ftp_stream = ftp_stream.into_secure(ctx, "localhost").await.unwrap();
     /// # });
     /// ```
@@ -342,7 +346,7 @@ impl FtpStream {
     /// ```
     /// # use suppaftp::{FtpStream, FtpError};
     /// # use std::io::Cursor;
-    /// # let mut conn = FtpStream::connect("ftp.server.local:21").unwrap();
+    /// # let mut conn = FtpStream::connect("ftp.server.local").unwrap();
     /// # conn.login("test", "test").and_then(|_| {
     /// #     let mut reader = Cursor::new("hello, world!".as_bytes());
     /// #     conn.put_file("retr.txt", &mut reader)
@@ -380,7 +384,7 @@ impl FtpStream {
     /// ```
     /// # use suppaftp::{FtpStream, FtpError};
     /// # use std::io::Cursor;
-    /// # let mut conn = FtpStream::connect("ftp.server.local:21").unwrap();
+    /// # let mut conn = FtpStream::connect("ftp.server.local").unwrap();
     /// # conn.login("test", "test").and_then(|_| {
     /// #     let mut reader = Cursor::new("hello, world!".as_bytes());
     /// #     conn.put_file("simple_retr.txt", &mut reader)
@@ -933,22 +937,22 @@ mod test {
 
     use serial_test::serial;
 
-    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    #[maybe_async_cfg::maybe(sync(feature="sync"), async(feature="async"))]
     use async_std::io::Cursor;
 
-    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
-    #[maybe_async::only_if(async)]
+    #[maybe_async_cfg::maybe(sync(feature="sync"), async(feature="async"))]
+    #[maybe_async_cfg::only_if(async)]
     fn test_tls_connector() -> TlsConnector {
         TlsConnector::new()
     }
 
-    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
-    #[maybe_async::only_if(sync)]
+    #[maybe_async_cfg::maybe(sync(feature="sync"), async(feature="async"))]
+    #[maybe_async_cfg::only_if(sync)]
     fn test_tls_connector() -> TlsConnector {
         TlsConnector::new().unwrap()
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn connect() {
         crate::log_init();
@@ -956,7 +960,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test))]
     #[serial]
     async fn connect_tls() {
         crate::log_init();
@@ -976,7 +980,7 @@ mod test {
         assert!(ftp_stream.quit().await.is_ok());
     }
 
-    #[maybe_async::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync-secure", test), async(feature="async-secure", async_attributes::test))]
     #[serial]
     async fn should_work_after_clear_command_channel() {
         crate::log_init();
@@ -999,7 +1003,7 @@ mod test {
         assert!(ftp_stream.quit().await.is_ok());
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn should_change_mode() {
         crate::log_init();
@@ -1012,7 +1016,7 @@ mod test {
         assert_eq!(ftp_stream.mode, Mode::Passive);
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[cfg(feature = "_with-welcome-msg")]
     #[serial]
     async fn welcome_message() {
@@ -1025,7 +1029,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn get_ref() {
         crate::log_init();
@@ -1034,7 +1038,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn change_wrkdir() {
         crate::log_init();
@@ -1046,7 +1050,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn cd_up() {
         crate::log_init();
@@ -1058,7 +1062,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn noop() {
         crate::log_init();
@@ -1067,7 +1071,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn make_and_remove_dir() {
         crate::log_init();
@@ -1086,7 +1090,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn set_transfer_type() {
         crate::log_init();
@@ -1099,7 +1103,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn transfer_file() {
         crate::log_init();
@@ -1174,7 +1178,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn should_abort_transfer() {
         crate::log_init();
@@ -1204,7 +1208,7 @@ mod test {
         test_finalize_stream(stream).await;
     }
 
-    #[maybe_async::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
+    #[maybe_async_cfg::maybe(sync(feature="sync", test), async(feature="async", async_attributes::test))]
     #[serial]
     async fn should_resume_transfer() {
         crate::log_init();
@@ -1257,7 +1261,7 @@ mod test {
 
     // -- test utils
 
-    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    #[maybe_async_cfg::maybe(sync(feature="sync"), async(feature="async"))]
     async fn test_setup_stream() -> FtpStream {
         let mut ftp_stream = FtpStream::connect(TEST_SERVER_ADDR).await.unwrap();
         assert!(ftp_stream.login(TEST_SERVER_LOGIN, TEST_SERVER_PASSWORD).await.is_ok());
@@ -1269,7 +1273,7 @@ mod test {
         ftp_stream
     }
 
-    #[maybe_async::maybe(sync(feature="sync"), async(feature="async"))]
+    #[maybe_async_cfg::maybe(sync(feature="sync"), async(feature="async"))]
     async fn test_finalize_stream(mut stream: FtpStream) {
         crate::log_init();
         // Get working directory

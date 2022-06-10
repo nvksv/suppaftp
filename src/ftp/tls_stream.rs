@@ -2,9 +2,9 @@
 //!
 //! This module exposes the async data stream implementation where bytes must be written to/read from
 
-maybe_async::content! {
+maybe_async_cfg::content! {
 
-#![maybe_async::default(
+#![maybe_async_cfg::default(
     idents(
         async_native_tls(sync="native_tls", async), 
         async_std(sync="std", async), 
@@ -20,10 +20,10 @@ maybe_async::content! {
     ),
 )]
 
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
+#[maybe_async_cfg::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
 use async_native_tls::TlsStream;
 
-#[maybe_async::maybe(sync(feature = "sync"), async(feature = "async"))]
+#[maybe_async_cfg::maybe(sync(feature = "sync"), async(feature = "async"))]
 use async_std::{
     io::{Read, Result, Write},
     net::TcpStream
@@ -37,7 +37,7 @@ use std::pin::Pin;
 
 // -- tls stream wrapper to implement drop...
 
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature = "sync", replace_feature("_secure", "sync-secure"), drop_attrs(pin)), 
     async(feature = "async", replace_feature("_secure", "async-secure"), inner("pin_project(project = TlsStreamWrapperProjAsync)")),
 )]
@@ -51,13 +51,13 @@ pub struct TlsStreamWrapper {
     tls_shutdown: bool,
 }
 
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature = "sync", replace_feature("_secure", "sync-secure")), 
     async(feature = "async", replace_feature("_secure", "async-secure")),
 )]
 impl TlsStreamWrapper {
     /// Get underlying tcp stream
-    #[maybe_async::only_if(sync)]
+    #[maybe_async_cfg::only_if(sync)]
     pub(crate) fn tcp_stream(mut self) -> TcpStream {
         let mut stream = self.stream.get_ref().try_clone().unwrap();
 
@@ -72,7 +72,7 @@ impl TlsStreamWrapper {
     }
 
     /// Get underlying tcp stream
-    #[maybe_async::only_if(async)]
+    #[maybe_async_cfg::only_if(async)]
     pub(crate) fn tcp_stream(self) -> TcpStream {
         self.stream.get_ref().clone()
     }
@@ -83,7 +83,7 @@ impl TlsStreamWrapper {
     }
 }
 
-#[maybe_async::maybe(
+#[maybe_async_cfg::maybe(
     sync(feature = "sync", replace_feature("_secure", "sync-secure")), 
     async(feature = "async", replace_feature("_secure", "async-secure")),
 )]
@@ -99,8 +99,8 @@ impl From<TlsStream<TcpStream>> for TlsStreamWrapper {
 
 // -- sync
 
-#[maybe_async::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
-#[maybe_async::only_if(sync)]
+#[maybe_async_cfg::maybe(sync(feature = "sync-secure"), async(feature = "async-secure"))]
+#[maybe_async_cfg::only_if(sync)]
 impl Drop for TlsStreamWrapper {
     fn drop(&mut self) {
         if self.tls_shutdown {
@@ -113,14 +113,14 @@ impl Drop for TlsStreamWrapper {
     }
 }
 
-#[maybe_async::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
+#[maybe_async_cfg::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
 impl Read for TlsStreamWrapper {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         self.stream.read(buf)
     }
 }
 
-#[maybe_async::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
+#[maybe_async_cfg::maybe(sync(feature="sync", replace_feature("_secure", "sync-secure")))]
 impl Write for TlsStreamWrapper {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         self.stream.write(buf)
@@ -133,7 +133,7 @@ impl Write for TlsStreamWrapper {
 
 // -- async
 
-#[maybe_async::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
+#[maybe_async_cfg::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
 impl Read for TlsStreamWrapper {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -144,7 +144,7 @@ impl Read for TlsStreamWrapper {
     }
 }
 
-#[maybe_async::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
+#[maybe_async_cfg::maybe(async(feature="async", replace_feature("_secure", "async-secure")))]
 impl Write for TlsStreamWrapper {
     fn poll_write(
         self: Pin<&mut Self>,

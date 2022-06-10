@@ -46,7 +46,7 @@
 //!
 //! ```rust
 //! use suppaftp::FtpStream;
-//! let mut ftp_stream = FtpStream::connect("ftp.server.local:21").unwrap_or_else(|err|
+//! let mut ftp_stream = FtpStream::connect("ftp.server.local").unwrap_or_else(|err|
 //!     panic!("{}", err)
 //! );
 //! assert!(ftp_stream.login("test", "test").is_ok());
@@ -96,7 +96,7 @@ assert!(ftp_stream.quit().is_ok());
 //! use suppaftp::FtpStream;
 //! use async_native_tls::{TlsConnector, TlsStream};
 //!
-//! let ftp_stream = FtpStream::connect("test.rebex.net:21").await.unwrap();
+//! let ftp_stream = FtpStream::connect("test.rebex.net").await.unwrap();
 //! // Switch to the secure mode
 //! let mut ftp_stream = ftp_stream.into_secure(TlsConnector::new(), "test.rebex.net").await.unwrap();
 //! ftp_stream.login("demo", "password").await.unwrap();
@@ -165,15 +165,15 @@ pub fn log_init() {
 }
 
 pub mod test {
-//    pub const TEST_SERVER_ADDR: &str = "ftp.server.local:21";
-    pub const TEST_SERVER_ADDR: &str = "192.168.8.222:21";
+//    pub const TEST_SERVER_ADDR: &str = "ftp.server.local";
+    pub const TEST_SERVER_ADDR: &str = "192.168.8.222";
     pub const TEST_SERVER_LOGIN: &str = "test";
     pub const TEST_SERVER_PASSWORD: &str = "test";
 //    pub const TEST_SERVER_WELCOME: &str = "220 You will be disconnected after 15 minutes of inactivity.";
 
     pub const TEST_SERVER_WELCOME: &str = "ProFTPD Server (backup FTP Server) [::ffff:192.168.8.222]";
 
-    pub const TEST_TLS_SERVER_ADDR: &str = "test.rebex.net:21";
+    pub const TEST_TLS_SERVER_ADDR: &str = "test.rebex.net";
     pub const TEST_TLS_SERVER_NAME: &str = "test.rebex.net";
     pub const TEST_TLS_SERVER_LOGIN: &str = "demo";
     pub const TEST_TLS_SERVER_PASSWORD: &str = "password";
